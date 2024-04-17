@@ -1,0 +1,20 @@
+authentication
+PASS yourpassword
+NICK yournickname
+USER yourusername 0 * :Your Real Name
+
+write to channel
+PRIVMSG #general :Hello, everyone!
+Server an alle anderen: :nickname!user@host PRIVMSG #general :Hello, everyone!
+
+/list
+:server 322 yournickname #channelname 42 :[+ntr] Channel topic goes here
+:server 323 yournickname :End of /LIST
+
+/join
+JOIN #channelname
+Several different actions depending if the channel exists, if it doesn't exist, if it is available for the user
+
+/nick
+NICK yournickname
+

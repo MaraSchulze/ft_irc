@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/17 17:03:14 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/17 18:30:57 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,9 @@ class  IrcApplicationLayer {
 	public:
 		IrcApplicationLayer();
 		~IrcApplicationLayer();
-		void	connect(int port);
-		void	disconnect(int port);
-		void	receive(int port, std::string line);
+		void	connect(struct sockaddr_in address);
+		void	disconnect(struct sockaddr_in address);
+		void	receive(struct sockaddr_in address, std::string line);
 		int		getPipeFd();
 };
 
