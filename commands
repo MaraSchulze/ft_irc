@@ -8,6 +8,7 @@ PRIVMSG #general :Hello, everyone!
 Server an alle anderen: :nickname!user@host PRIVMSG #general :Hello, everyone!
 
 /list
+LIST
 :server 322 yournickname #channelname 42 :[+ntr] Channel topic goes here
 :server 323 yournickname :End of /LIST
 
@@ -18,3 +19,16 @@ Several different actions depending if the channel exists, if it doesn't exist, 
 /nick
 NICK yournickname
 
+/kick
+
+/invite
+
+/topic
+
+/mode
+
+
+
+
+Unknown command:
+421 <client nick> <command> :Unknown command
