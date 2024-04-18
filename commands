@@ -16,17 +16,23 @@ LIST
 JOIN #channelname
 Several different actions depending if the channel exists, if it doesn't exist, if it is available for the user
 
+/part
+PART #channelname
+
 /nick
 NICK yournickname
 
 /kick
+KICK
 
 /invite
+INVITE 
 
 /topic
+TOPIC
 
 /mode
-
+MODE 
 
 
 

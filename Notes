@@ -1,2 +1,3 @@
 Substitute DFLAGS with CFLAGS in 2 rules for terminal submit!
 
+Substitute splitstring with self written function
