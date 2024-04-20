@@ -6,11 +6,12 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 22:31:24 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/20 17:00:19 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "helperFunctions.hpp"
+#include <cctype>
 
 std::string	firstWord(std::string line) {
 	size_t position;
@@ -38,4 +39,25 @@ std::vector<std::string> splitString(const std::string &str) {
         words.push_back(str.substr(start));
     }
     return words;
+}
+
+std::string	getSeveralWords(std::vector<std::string> words, int begin) {
+	std::string	result;
+
+	for (size_t i = begin; i < words.size(); i++) {
+		result += words[i];
+	}
+	return result;
+}
+
+bool	isCorrectNick(std::string nick) {
+	std::string charSet = "01234567890-{}[]\\^`";
+
+	if (isalpha(nick[0]) == false)
+		return false;
+	for (size_t i = 1; i < nick.size(); i++) {
+		if (isalpha(nick[i]) == false && charSet.find(nick[i]) == std::string::npos)
+			return false;
+	}
+	return true;
 }

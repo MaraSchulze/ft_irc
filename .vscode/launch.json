@@ -9,7 +9,7 @@
 			"request": "launch",
 			"name": "Debug",
 			"program": "${workspaceFolder}/ircserv",
-			"args": ["100", "doh"],
+			"args": ["6667", "doh"],
 			"cwd": "${workspaceFolder}"
 		}
 	]

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 23:02:07 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/20 19:57:48 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #include "helperFunctions.hpp"
 #include <iostream>
 
-IrcApplicationLayer::IrcApplicationLayer(std::string _password) : _password(_password) {}
+IrcApplicationLayer::IrcApplicationLayer(std::string serverName, std::string _password) : _password(_password), _serverName(serverName) {}
 
 IrcApplicationLayer::~IrcApplicationLayer() {
 	// delete all User and Channel objects that we have newed
@@ -104,25 +104,61 @@ void	IrcApplicationLayer::handlePass(User& user, std::string line) {
 	words = splitString(line);
 
 	// check for correct syntax
-
-	if (_password == words[1])
-		user.setAuthStatus(1);
-	else {
-		std::cout << "Wrong password" << std::endl;
-		// send error code back
+	if (words.size() != 2) {
+		sendError(user, "464", ":Password incorrect");
+		return;
 	}
 
+	// check if we are already registered
+	if (user.setAuthStatus(0) == false) {
+		sendError(user, "462", ":Unauthorized command (already registered)");
+		return;
+	}
+
+	// check for right password
+	if (_password != words[1])
+		sendError(user, "464", ":Password incorrect");
+
+	// Is registration complete?
+	if (user.checkAuthStatus() == true)
+		sendWelcome(user);
 }	
 
 void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 	std::vector<std::string>	words;
+	User						*currentUser;
+	std::string					currentNick;
 
 	words = splitString(line);
 
 	// check for correct syntax
+	if (words.size() > 2) {
+		sendError(user, "431", ":No nickname given");
+		return;
+	}
+	
+	// check for correct nick
+	if (isCorrectNick(words[1]) == false) {
+		sendError(user, "432", words[1] + " :Erroneous nickname");
+		return;
+	}
+
+	// check if nick is already in use
+	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
+		currentUser = (*it).second;
+		currentNick = currentUser->getNick(); 
+		if (words[1] == currentNick) {
+			sendError(user, "431", words[1] + " :Nickname is already in use");
+			return;
+		}
+	}
 
 	user.setNick(words[1]);
-	user.setAuthStatus(2);
+	user.setAuthStatus(1);
+
+	// Is registration complete?
+	if (user.checkAuthStatus() == true)
+		sendWelcome(user);
 }	
 
 void	IrcApplicationLayer::handleUser(User& user, std::string line) {
@@ -131,32 +167,68 @@ void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 	words = splitString(line);
 
 	// check for correct syntax
+	if (words.size() < 5) {
+		sendError(user, "461", "USER :Not enough parameters");
+		return;
+	}
+	
+	// check if we are already registered
+	if (user.setAuthStatus(2) == false) {
+		sendError(user, "462", ":Unauthorized command (already registered)");
+		return;
+	}
 
 	user.setUser(words[1]);
-	user.setAuthStatus(3);
+	user.setRealName(getSeveralWords(words, 4));
+
+	// Is registration complete?
+	if (user.checkAuthStatus() == true)
+		sendWelcome(user);
 }	
 
 void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	std::vector<std::string>	words;
 	Channel *channel;
+	std::vector<int>	members;
+	std::string					memberList;
 
 	words = splitString(line);
 
 	// check for correct syntax
-
-	// if channel doesnt exist we create it
-	if (_channels.find(words[1]) == _channels.end()) {
-		channel = new Channel(words[1]);
-		_channels[words[1]] = channel;
-		// add user as operator
-	} else {
-		// add user to channel
-		channel = _channels[words[1]];
-		channel->addMember(user.getId());
-		user.addChannel(words[1]);
+	if (words.size() < 2) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
 	}
-	// send response back to user
-	std::cout << "[debug] " << user.getNick() << " has joined channel " << words[1] << std::endl;
+
+	for (size_t i = 1; i < words.size(); i++) {
+		// check for #
+		if (words[1][0] != '#') {
+			sendError(user, "403", words[1] + " :No such channel");
+		}
+
+		// if channel doesnt exist we create it
+		if (_channels.find(words[1]) == _channels.end()) {
+			channel = new Channel(words[1]);
+			_channels[words[1]] = channel;
+			channel->addMember(user.getId());
+			// add user as operator
+			user.addChannel(words[1]);
+		} else {
+			// add user to channel
+			channel = _channels[words[1]];
+			channel->addMember(user.getId());
+			user.addChannel(words[1]);
+		}
+		
+		// send response back to user
+		members = channel->getMembers();
+		memberList = "";
+		for (std::vector<int>::iterator it = members.end() - 1; it >= members.begin(); it--) {
+			memberList += _users[*it]->getNick();
+			memberList += " ";
+		}
+		sendError(user, "353", " = " + words[1] + " :" + memberList);
+		sendError(user, "331", words[1] + " :No topic is set");
+	}
 }	
 
 void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
@@ -187,8 +259,16 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
 	std::string message;
 
-	message = ":server " + errorcode + " " + user.getNick() + " " + errorMessage;
+	message = ":" + _serverName + " " + errorcode + " " + user.getNick() + " " + errorMessage;
 	send(user.getId(), message);
+}
+
+
+void	IrcApplicationLayer::sendWelcome(User& user) {
+	sendError(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
+	sendError(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
+	sendError(user, "003", "This server was created <date>");
+	sendError(user, "004", _serverName + " 1.0.0" + " - " + "itkol");
 }
 
 void	IrcApplicationLayer::send(int id, std::string message) {

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 22:50:18 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/20 18:06:40 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ class  IrcApplicationLayer {
 		std::map<int, User*>			_users;
 		std::map<std::string, Channel*>	_channels;
 		std::string						_password;
+		std::string						_serverName;
 
 		void	dispatchCommand(User& user, std::string line);
 		void	handlePass(User& user, std::string line);
@@ -34,8 +35,9 @@ class  IrcApplicationLayer {
 		void	handlePrivmsg(User& user, std::string line);
 		void	sendError(User& user, std::string errorcode, std::string errorMessage);
 		void	send(int id, std::string message);
+		void	sendWelcome(User& user);
 	public:
-		IrcApplicationLayer(std::string password);
+		IrcApplicationLayer(std::string serverName, std::string password);
 		~IrcApplicationLayer();
 		void	connect(int id, struct sockaddr_in address);	
 		void	disconnect(int id);

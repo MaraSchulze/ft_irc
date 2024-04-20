@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:09:12 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 22:57:36 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/20 16:55:16 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	IrcApplicationLayer ircApp = IrcApplicationLayer(argv[2]);
+	IrcApplicationLayer ircApp = IrcApplicationLayer("irc.rockingpiggies.de", argv[2]);
 
 	// test
 	struct sockaddr_in address = {};
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 	ircApp.receive(100, "GARBLE");
 	ircApp.connect(101, address);
 	ircApp.receive(101, "PASS doh");
-	ircApp.receive(101, "NICK wicky");
+	ircApp.receive(101, "NICK wicky()");
 	ircApp.receive(101, "USER x 0 * :x");
 	ircApp.receive(101, "JOIN #testchannel");
 	ircApp.receive(100, "PRIVMSG #testchannel :Hello");
