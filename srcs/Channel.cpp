@@ -6,11 +6,12 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 22:35:06 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/21 17:00:05 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Channel.hpp"
+#include <algorithm>
 
 Channel::Channel(std::string name) : _name(name) {}
 
@@ -18,10 +19,6 @@ Channel::~Channel() {}
 
 void	Channel::addMember(int id) {
 	_members.push_back(id);
-}
-
-std::vector<int>&	Channel::getMembers() {
-	return _members;
 }
 
 void	Channel::removeMember(int id) {
@@ -35,4 +32,103 @@ void	Channel::removeMember(int id) {
 		else 
 			it++;
 	}
+}
+
+bool	Channel::isMember(int id) {
+	if (std::find(_members.begin(), _members.end(), id) != _members.end())
+		return true;
+	else
+		return false;
+}
+
+std::vector<int>&	Channel::getMembers() {
+	return _members;
+}
+
+void	Channel::addOperator(int id) {
+	_operators.push_back(id);
+}
+
+void	Channel::removeOperator(int id) {
+	std::vector<int>::iterator it = _operators.begin();
+
+	while (it != _operators.end()) {
+		if (*it == id) {
+			_operators.erase(it);
+			break;
+		}
+		else 
+			it++;
+	}
+}
+
+bool	Channel::isOperator(int id) {
+	if (std::find(_operators.begin(), _operators.end(), id) != _operators.end())
+		return true;
+	else
+		return false;
+}
+
+void	Channel::setModeI(bool i) {
+	_modeI = i;
+}
+
+bool	Channel::getModeI() {
+	return _modeI;
+}
+
+void	Channel::setModeK(bool k) {
+	_modeK = k;
+}
+
+bool	Channel::getModeK() {
+	return _modeK;
+}
+
+void	Channel::setModeL(bool l) {
+	_modeL = l;
+}
+
+bool	Channel::getModeL() {
+	return _modeL;
+}
+
+void	Channel::setModeO(bool o) {
+	_modeO = o;
+}
+
+bool	Channel::getModeO() {
+	return _modeO;
+}
+
+void	Channel::setModeT(bool t) {
+	_modeT = t;
+}
+
+bool	Channel::getModeT() {
+	return _modeT;
+}
+
+std::string	Channel::getKey() {
+	return _key;
+}
+
+void	Channel::setKey(std::string key) {
+	_key = key;
+}
+
+void	Channel::setUserLimit(int userLimit) {
+	_userLimit = userLimit;
+}
+
+int		Channel::getUserLimit() {
+	return _userLimit;
+}
+
+std::string	Channel::getTopic() {
+	return _topic;
+}
+
+void	Channel::setTopic(std::string topic) {
+	_topic = topic;
 }

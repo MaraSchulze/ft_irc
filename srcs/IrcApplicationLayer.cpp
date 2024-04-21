@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/20 19:57:48 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/21 19:42:41 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,11 +75,11 @@ void	IrcApplicationLayer::receive(int id, std::string line) {
 
 void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 	std::string	command;
-	std::string commands[5] = {"PASS", "NICK", "USER", "JOIN", "PRIVMSG"};
+	std::string commands[11] = {"PASS", "NICK", "USER", "JOIN", "PART", "PRIVMSG", "KICK", "INVITE", "TOPIC", "MODE", "QUIT"};
 	int	index;
 
 	command = firstWord(line);
-	for (index = 0; index < 5; index++) {
+	for (index = 0; index < 11; index++) {
 		if (command == commands[index])
 			break;
 	}
@@ -92,7 +92,19 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 					return;
 		case 3	:	handleJoin(user, line);
 					return;
-		case 4	:	handlePrivmsg(user, line);
+		case 4	:	handlePart(user, line);
+					return;
+		case 5	:	handlePrivmsg(user, line);
+					return;
+		case 6	:	handleKick(user, line);
+					return;
+		case 7	:	handleInvite(user, line);
+					return;
+		case 8	:	handleTopic(user, line);
+					return;
+		case 9	:	handleMode(user, line);
+					return;
+		case 10	:	handleQuit(user, line);
 					return;
 		default :	sendError(user, "421", command + " :Unknown command");
 	}
@@ -201,20 +213,20 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 
 	for (size_t i = 1; i < words.size(); i++) {
 		// check for #
-		if (words[1][0] != '#') {
+		if (words[i][0] != '#') {
 			sendError(user, "403", words[1] + " :No such channel");
 		}
 
 		// if channel doesnt exist we create it
 		if (_channels.find(words[1]) == _channels.end()) {
-			channel = new Channel(words[1]);
+			channel = new Channel(words[i]);
 			_channels[words[1]] = channel;
 			channel->addMember(user.getId());
 			// add user as operator
 			user.addChannel(words[1]);
 		} else {
 			// add user to channel
-			channel = _channels[words[1]];
+			channel = _channels[words[i]];
 			channel->addMember(user.getId());
 			user.addChannel(words[1]);
 		}
@@ -226,10 +238,51 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 			memberList += _users[*it]->getNick();
 			memberList += " ";
 		}
-		sendError(user, "353", " = " + words[1] + " :" + memberList);
+		sendError(user, "353", " = " + words[i] + " :" + memberList);
 		sendError(user, "331", words[1] + " :No topic is set");
 	}
 }	
+
+void	IrcApplicationLayer::handlePart(User& user, std::string line) {
+	std::vector<std::string>	words;
+	Channel 					*channel;
+	std::vector<int>			members;
+	std::string					message;
+
+	words = splitString(line);
+
+	// check for correct syntax
+	if (words.size() < 2) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+	}
+
+	// get message
+	if (words.size() == 3)
+		message = words[2];
+
+	for (size_t i = 1; i < words.size(); i++) {
+		// check for #
+		if (words[i][0] != '#' || _channels.find(words[i]) == _channels.end()) {
+			sendError(user, "403", words[1] + " :No such channel");
+		}
+
+		// check if user is on channel
+		channel = _channels[words[i]];
+		if (channel->isMember(user.getId())) {
+			sendError(user, "442", words[i] + " :You're not on that channel");
+		}
+		
+		// send response back to user
+		members = channel->getMembers();
+		for (std::vector<int>::iterator it = members.end() - 1; it >= members.begin(); it--) {
+			if (*it != user.getId())
+				send(*it, ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "PART " + words[i] + message);
+		}
+
+		// remove user from channel._members list
+		channel->removeMember(user.getId());
+	}
+}
 
 void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	std::vector<std::string>	words;
@@ -256,6 +309,109 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	}
 }
 
+void	IrcApplicationLayer::handleKick(User& user, std::string line) {
+	std::vector<std::string>	words;
+	std::string					message;
+	Channel						*channel;
+	int							member;
+
+	words = splitString(line);
+
+	// check for correct syntax
+	if (words.size() < 3) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+		return;
+	}
+
+	// get message if there is one
+	if (words.size() >= 4)
+		message = words[3];
+
+	// check if channel exists
+	if (_channels.find(words[1]) == _channels.end()) {
+		sendError(user, "403", words[1] + " :No such channel");
+		return;
+	}
+	else
+		channel = _channels[words[1]];
+
+	// check for operator rights
+	if (channel->isOperator(user.getId()) == false) {
+		sendError(user, "482", "<channel> :You're not channel operator");
+		return;
+	}
+
+	// check if to-be-kicked-out-user exists
+	member = getUserIdByName(words[2]);
+	if (member == -1) {
+		sendError(user, "401", words[2] + " :No such nick/channel");
+		return;
+	}
+
+	// check if to=be-kicked-out-user is on channel
+	if (channel->isMember(member) == false) {
+		sendError(user, "441", words[2] + " " + words[1] + ":They aren't on that channel");
+		return;
+	}
+	
+	// send message to all members
+}
+
+void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
+	std::vector<std::string>	words;
+	Channel						*channel;
+
+	words = splitString(line);
+
+	// check for correct syntax
+	if (words.size() < 3) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+		return;
+	}
+
+	// check if invitee exists
+
+	// check if channel exists
+
+	// check if user is member in channel
+
+	// check if channel is invite-only and user is operator
+
+	// send invitee a server response
+}
+
+void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
+	// check for correct syntax
+
+	// check if channel exists
+
+	// check if user is on the channel
+
+	// check if channel has topic mode set and user is operator
+
+	// check if topic is given and send back reply according to that
+}
+
+void	IrcApplicationLayer::handleMode(User& user, std::string line) {
+	// check for correct syntax
+
+	// extract mode flags and dispatch them
+}
+
+void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
+	// check for correct syntax
+
+	// get message if there is one
+
+	// get nick for return message
+
+	// delete user from _users map
+
+	// delete user as member from all channels
+
+	// send the quit message
+}
+
 void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
 	std::string message;
 
@@ -273,4 +429,15 @@ void	IrcApplicationLayer::sendWelcome(User& user) {
 
 void	IrcApplicationLayer::send(int id, std::string message) {
 	std::cout << "Send to " << id << " -> " << message << std::endl;
+}
+
+int		IrcApplicationLayer::getUserIdByName(std::string name) {
+	User	*current;
+	
+	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
+		current = (*it).second;
+		if (current->getNick() == name)
+			return current->getId();
+	}
+	return -1;
 }

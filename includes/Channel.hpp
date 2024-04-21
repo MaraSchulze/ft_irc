@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:35:10 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/18 22:34:59 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/21 16:58:23 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,14 +19,42 @@
 class  Channel {
 	private:
 		std::string			_name;
-		std::string			_topic;
 		std::vector<int>	_members;
+		std::vector<int>	_operators;
+		bool				_modeI;
+		bool				_modeK;
+		bool				_modeL;
+		bool				_modeO;
+		bool				_modeT;
+		std::string			_key;
+		int					_userLimit;
+		std::string			_topic;
 	public:
 		Channel(std::string name);
 		~Channel();
 		void	addMember(int id);
-		std::vector<int>&	getMembers();
 		void	removeMember(int id);
+		bool	isMember(int id);
+		std::vector<int>&	getMembers();
+		void	addOperator(int id);
+		void	removeOperator(int id);
+		bool	isOperator(int id);
+		void	setModeI(bool i);
+		bool	getModeI();
+		void	setModeK(bool k);
+		bool	getModeK();
+		void	setModeL(bool l);
+		bool	getModeL();
+		void	setModeO(bool o);
+		bool	getModeO();
+		void	setModeT(bool t);
+		bool	getModeT();
+		std::string	getKey();
+		void	setKey(std::string key);
+		void	setUserLimit(int userLimit);
+		int		getUserLimit();
+		std::string	getTopic();
+		void	setTopic(std::string topic);
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/20 18:57:47 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/21 16:40:53 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,9 @@ bool	User::setAuthStatus(int status) {
 	return true;
 }
 
+/*
+If all 3 required commands have been sent, we are registered.
+*/
 bool	User::checkAuthStatus() {
 	int	sum = 0;
 
