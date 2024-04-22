@@ -62,3 +62,7 @@ Unknown command:
 -------------------
 
 nc -v irc.uni-erlangen.de 6667
+
+-------------------
+Modes:
+

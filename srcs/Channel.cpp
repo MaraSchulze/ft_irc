@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 17:00:05 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 16:22:35 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,14 +91,6 @@ void	Channel::setModeL(bool l) {
 
 bool	Channel::getModeL() {
 	return _modeL;
-}
-
-void	Channel::setModeO(bool o) {
-	_modeO = o;
-}
-
-bool	Channel::getModeO() {
-	return _modeO;
 }
 
 void	Channel::setModeT(bool t) {

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:35:10 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 16:58:23 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 16:22:14 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,6 @@ class  Channel {
 		bool				_modeI;
 		bool				_modeK;
 		bool				_modeL;
-		bool				_modeO;
 		bool				_modeT;
 		std::string			_key;
 		int					_userLimit;
@@ -45,8 +44,6 @@ class  Channel {
 		bool	getModeK();
 		void	setModeL(bool l);
 		bool	getModeL();
-		void	setModeO(bool o);
-		bool	getModeO();
 		void	setModeT(bool t);
 		bool	getModeT();
 		std::string	getKey();

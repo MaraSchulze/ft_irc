@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 18:04:22 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 19:34:45 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,13 @@
 
 # include "User.hpp"
 # include "Channel.hpp"
+# include "SendQueue.hpp"
 # include <map>
 # include <string>
 # include <netinet/in.h>
 # include <vector>
+
+# define SERVERNAME "irc.rockingpiggies.com"
 
 class  IrcApplicationLayer {
 	private:
@@ -26,6 +29,7 @@ class  IrcApplicationLayer {
 		std::map<std::string, Channel*>	_channels;
 		std::string						_password;
 		std::string						_serverName;
+		SendQueue						_sendQueue;
 
 		void	dispatchCommand(User& user, std::string line);
 		void	handlePass(User& user, std::string line);
@@ -40,15 +44,18 @@ class  IrcApplicationLayer {
 		void	handleMode(User& user, std::string line);
 		void	handleQuit(User& user, std::string line);
 		void	sendError(User& user, std::string errorcode, std::string errorMessage);
+		void	sendServerMessage(User& user, std::string code, std::string text);
+		void	sendPrefixMessage(User& user, User& sender, std::string command, std::string text);
 		void	send(int id, std::string message);
 		void	sendWelcome(User& user);
-		int		getUserIdByName(std::string name);
 	public:
-		IrcApplicationLayer(std::string serverName, std::string password);
+		IrcApplicationLayer(std::string password);
 		~IrcApplicationLayer();
-		void	connect(int id, struct sockaddr_in address);	
-		void	disconnect(int id);
-		void	receive(int id, std::string line);	
+		void		connect(int id, struct sockaddr_in address);	
+		void		disconnect(int id);
+		void		receive(int id, std::string line);
+		SendQueue&	getSendQueue();
+		int			getUserIdByName(std::string name);
 };
 
 #endif

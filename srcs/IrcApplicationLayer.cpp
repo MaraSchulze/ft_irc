@@ -6,15 +6,16 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 19:42:41 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 20:02:05 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "IrcApplicationLayer.hpp"
 #include "helperFunctions.hpp"
+#include "Mode.hpp"
 #include <iostream>
 
-IrcApplicationLayer::IrcApplicationLayer(std::string serverName, std::string _password) : _password(_password), _serverName(serverName) {}
+IrcApplicationLayer::IrcApplicationLayer(std::string _password) : _password(_password), _serverName(SERVERNAME) {}
 
 IrcApplicationLayer::~IrcApplicationLayer() {
 	// delete all User and Channel objects that we have newed
@@ -71,6 +72,21 @@ void	IrcApplicationLayer::receive(int id, std::string line) {
 		std::cout << "Error: Received a message from a client that doesn't exist." << std::endl;
 }	
 
+SendQueue&	IrcApplicationLayer::getSendQueue() {
+	return _sendQueue;
+}
+
+int		IrcApplicationLayer::getUserIdByName(std::string name) {
+	User	*current;
+	
+	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
+		current = (*it).second;
+		if (current->getNick() == name)
+			return current->getId();
+	}
+	return -1;
+}
+
 //******************** private methods **********************************
 
 void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
@@ -113,7 +129,7 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 void	IrcApplicationLayer::handlePass(User& user, std::string line) {
 	std::vector<std::string>	words;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() != 2) {
@@ -122,51 +138,67 @@ void	IrcApplicationLayer::handlePass(User& user, std::string line) {
 	}
 
 	// check if we are already registered
-	if (user.setAuthStatus(0) == false) {
+	if (user.checkAuthStatus() == true) {
 		sendError(user, "462", ":Unauthorized command (already registered)");
 		return;
 	}
 
-	// check for right password
-	if (_password != words[1])
+	// check if this is the first command
+	if (user.getAuthStatusNick() == true || user.getAuthStatusUser() == true) {
 		sendError(user, "464", ":Password incorrect");
+		return;
+	}
 
-	// Is registration complete?
-	if (user.checkAuthStatus() == true)
-		sendWelcome(user);
+	// check for right password
+	if (_password != words[1]) {
+		sendError(user, "464", ":Password incorrect");
+		return;
+	}
+
+	// set authStatus
+	user.setAuthStatusPass();
 }	
 
 void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 	std::vector<std::string>	words;
 	User						*currentUser;
+	std::string					nick;
 	std::string					currentNick;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
-	if (words.size() > 2) {
+	if (words.size() < 2) {
 		sendError(user, "431", ":No nickname given");
 		return;
 	}
 	
+	nick = words[1];
+
 	// check for correct nick
-	if (isCorrectNick(words[1]) == false) {
-		sendError(user, "432", words[1] + " :Erroneous nickname");
+	if (isCorrectNick(nick) == false) {
+		sendError(user, "432", nick + " :Erroneous nickname");
 		return;
 	}
 
+	// check if a NICK command has already been sent in this registration
+	if (user.getAuthStatusNick() == true) {
+		sendError(user, "462", ":Unauthorized command (already registered)");
+		return;
+	}
+	
 	// check if nick is already in use
 	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
 		currentUser = (*it).second;
 		currentNick = currentUser->getNick(); 
-		if (words[1] == currentNick) {
-			sendError(user, "431", words[1] + " :Nickname is already in use");
+		if (nick == currentNick) {
+			sendError(user, "431", nick + " :Nickname is already in use");
 			return;
 		}
 	}
 
-	user.setNick(words[1]);
-	user.setAuthStatus(1);
+	user.setNick(nick);
+	user.setAuthStatusNick();
 
 	// Is registration complete?
 	if (user.checkAuthStatus() == true)
@@ -175,8 +207,9 @@ void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 
 void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 	std::vector<std::string>	words;
+	std::string					realName;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() < 5) {
@@ -185,13 +218,20 @@ void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 	}
 	
 	// check if we are already registered
-	if (user.setAuthStatus(2) == false) {
+	if (user.getAuthStatusUser() == true) {
 		sendError(user, "462", ":Unauthorized command (already registered)");
 		return;
 	}
 
+	// set user and real name
 	user.setUser(words[1]);
-	user.setRealName(getSeveralWords(words, 4));
+	realName = getSeveralWords(words, 4);
+	if (realName[0] == ':')
+		realName = realName.substr(1);
+	user.setRealName(realName);
+
+	// set auth status user
+	user.setAuthStatusUser();
 
 	// Is registration complete?
 	if (user.checkAuthStatus() == true)
@@ -204,7 +244,7 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	std::vector<int>	members;
 	std::string					memberList;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() < 2) {
@@ -214,7 +254,7 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	for (size_t i = 1; i < words.size(); i++) {
 		// check for #
 		if (words[i][0] != '#') {
-			sendError(user, "403", words[1] + " :No such channel");
+			sendError(user, "403", words[i] + " :No such channel");
 		}
 
 		// if channel doesnt exist we create it
@@ -249,7 +289,7 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 	std::vector<int>			members;
 	std::string					message;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() < 2) {
@@ -286,25 +326,42 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 
 void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	std::vector<std::string>	words;
-	Channel *channel;
-	std::string	message;
-	User	*member;
+	Channel 					*channel;
+	std::string					message;
+	User						*member;
+	int							recipientId;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 
 	// check for rights
-	channel = _channels[words[1]];
 
 	// assemble message
 	message = words[2];
 
-	// assemble all recipients and send
-	for (std::vector<int>::iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++) {
-		if (*it != user.getId()) {
-			member = _users[*it];
-			send(*it, message);
+	// is it a private message?
+	recipientId = getUserIdByName(words[1]);
+	if (words[1][0] != '#') {
+		if (recipientId == -1) {
+			sendError(user, "401", words[1] + " :No such nick/channel");
+			return;
+		} else {
+			sendPrefixMessage(user, *_users[recipientId], "PRIVMSG", words[1] + " :" + message);
+			return;
+		}
+	}
+
+	// it seems to be a channel
+	if (_channels.find(words[1]) == _channels.end()) {
+		sendError(user, "403", words[1] + " :No such channel");
+	} else {
+		channel = _channels[words[1]];
+		for (std::vector<int>::iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++) {
+			if (*it != user.getId()) {
+				member = _users[*it];
+				sendPrefixMessage(*member, user, "PRIVMSG", words[1] + " :" + message);
+			}
 		}
 	}
 }
@@ -315,7 +372,7 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	Channel						*channel;
 	int							member;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() < 3) {
@@ -361,7 +418,7 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 	std::vector<std::string>	words;
 	Channel						*channel;
 
-	words = splitString(line);
+	words = splitString(line, " ");
 
 	// check for correct syntax
 	if (words.size() < 3) {
@@ -393,9 +450,14 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 }
 
 void	IrcApplicationLayer::handleMode(User& user, std::string line) {
-	// check for correct syntax
+	std::vector<std::string>	words;
+	Channel						*channel;
 
-	// extract mode flags and dispatch them
+	words = splitString(line, " ");
+	channel = _channels[words[1]];
+	Mode 	mode = Mode(*this, user, *channel, line);
+
+	mode.execute();
 }
 
 void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
@@ -409,7 +471,9 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 
 	// delete user as member from all channels
 
-	// send the quit message
+	// send the quit message to all members of all channels the user was in
+	// :<username>!user@host QUIT :Quit message here
+
 }
 
 void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
@@ -419,25 +483,27 @@ void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::stri
 	send(user.getId(), message);
 }
 
+void	IrcApplicationLayer::sendServerMessage(User& user, std::string code, std::string text) {
+	std::string message;
+
+	message = ":" + _serverName + " " + code + " " + user.getNick() + " " + text;
+	send(user.getId(), message);
+}
+
+void	IrcApplicationLayer::sendPrefixMessage(User& user, User& sender, std::string command, std::string text) {
+	std::string message;
+
+	message = ":" + sender.getNick() + "!" + sender.getUser() + "@" + sender.getHost() + " " + command + " " + text;
+	send(user.getId(), message);
+}
 
 void	IrcApplicationLayer::sendWelcome(User& user) {
-	sendError(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
-	sendError(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
-	sendError(user, "003", "This server was created <date>");
-	sendError(user, "004", _serverName + " 1.0.0" + " - " + "itkol");
+	sendServerMessage(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
+	sendServerMessage(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
+	sendServerMessage(user, "003", "This server was created " + getTime());
+	sendServerMessage(user, "004", _serverName + " 1.0.0" + " - " + "iklot");
 }
 
 void	IrcApplicationLayer::send(int id, std::string message) {
-	std::cout << "Send to " << id << " -> " << message << std::endl;
-}
-
-int		IrcApplicationLayer::getUserIdByName(std::string name) {
-	User	*current;
-	
-	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
-		current = (*it).second;
-		if (current->getNick() == name)
-			return current->getId();
-	}
-	return -1;
+	_sendQueue.push(id, message);
 }

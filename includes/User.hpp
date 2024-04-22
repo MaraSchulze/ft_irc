@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:31:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 16:42:40 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 18:58:44 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,9 @@
 class  User {
 	private:
 		int							_id;
-		int							_authStatus[3];
+		int							_authStatusPass;
+		int							_authStatusNick;
+		int							_authStatusUser;
 		std::string					_nick;
 		std::string					_user;
 		std::string					_realName;
@@ -29,7 +31,11 @@ class  User {
 		~User();
 		int							getId();
 		std::string					getHost();
-		bool						setAuthStatus(int status);
+		void						setAuthStatusPass();
+		void						setAuthStatusNick();
+		bool						getAuthStatusNick();
+		void						setAuthStatusUser();
+		bool						getAuthStatusUser();
 		bool						checkAuthStatus();
 		void						setNick(std::string nick);
 		std::string					getNick();

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/21 16:40:53 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/22 19:26:49 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,9 +15,7 @@
 // debug
 #include <iostream>
 
-User::User(int id) : _id(id) {
-	for (int i = 0; i < 3; i ++)
-		_authStatus[i] = 0;
+User::User(int id) : _id(id), _authStatusPass(0), _authStatusNick(0), _authStatusUser(0) {
 	std::cout << "[debug] User " << id << " connected" << std::endl;
 }
 
@@ -31,27 +29,31 @@ std::string	User::getHost() {
 	return "www.dummy.com";
 }
 
-bool	User::setAuthStatus(int status) {
-	// if we already were in that phase of registration, give back that info to the caller
-	if (_authStatus[status] == 1)
-		return false;
+void	User::setAuthStatusPass() {
+	_authStatusPass = 1;
+}
 
-	// set _authStatus
-	_authStatus[status] = 1;
-	return true;
+void	User::setAuthStatusNick() {
+	_authStatusNick = 1;
+}
+
+bool	User::getAuthStatusNick() {
+	return _authStatusNick == 1;
+}
+
+void	User::setAuthStatusUser() {
+	_authStatusUser = 1;
+}
+
+bool	User::getAuthStatusUser() {
+	return _authStatusUser == 1;
 }
 
 /*
 If all 3 required commands have been sent, we are registered.
 */
 bool	User::checkAuthStatus() {
-	int	sum = 0;
-
-	for (int i = 0; i < 3; i++) {
-		if (_authStatus[i] == 1)
-			sum++;
-	}
-	return (sum == 3);
+	return _authStatusPass == 1 && _authStatusNick == 1 && _authStatusUser == 1;
 }
 
 void	User::setNick(std::string nick) {
