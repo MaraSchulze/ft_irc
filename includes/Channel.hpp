@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:35:10 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/23 21:36:47 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 19:24:15 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class  Channel {
 	public:
 		Channel(std::string name);
 		~Channel();
+		std::string getName();
 		void	addMember(int id);
 		void	removeMember(int id);
 		bool	isMember(int id);

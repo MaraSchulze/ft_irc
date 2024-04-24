@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:09:12 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 10:41:57 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 21:01:36 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,8 @@ int main(int argc, char **argv) {
 	ircApp.receive(101, "USER x 0 * :x");
 	ircApp.receive(101, "JOIN #testchannel");
 	ircApp.receive(100, "PRIVMSG #testchannel :Hello");
-	ircApp.receive(100, "QUIT :im off");
+	ircApp.receive(100, "INVITE wicky #secondchannel");
+	ircApp.receive(100, "KICK #secondchannel wicky,noone");
+	ircApp.receive(100, "MODE #testchannel +k key");
 	ircApp.disconnect(100);
 }

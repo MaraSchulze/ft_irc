@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 10:56:59 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 19:11:18 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -452,8 +452,10 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	std::vector<std::string>	words;
 	std::string					message;
-	std::vector<std::string>	channels;
+	std::vector<std::string>	channelNames;
+	std::vector<std::string>	userNames;
 	Channel						*channel;
+	std::vector<std::string>	targets;
 	int							member;
 
 	words = splitString(line, " ");
@@ -467,56 +469,81 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	// get message if there is one
 	if (words.size() >= 4)
 		message = getSeveralWords(words, 3);
+	else
+		message = user.getNick();
 
 	// get channels
+	channelNames = splitString(words[1], ",");
 
 	// get users
+	userNames = splitString(words[2], ",");
 
 	// is the channel to user rule adhered to?
+	if (channelNames.size() != 1 && channelNames.size() != userNames.size()) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+		return;
+	}
 
 	// iterate over channels
-	for (size_t i = 0; i < channels.size(); i++) {
+	for (size_t i = 0; i < channelNames.size(); i++) {
 
-	// check if channel exists
-	if (_channels.find(words[1]) == _channels.end()) {
-		sendError(user, "403", words[1] + " :No such channel");
-		return;
-	}
-	else
-		channel = _channels[words[1]];
+		// check if channel exists
+		if (_channels.find(channelNames[i]) == _channels.end()) {
+			sendError(user, "403", words[1] + " :No such channel");
+			return;
+		}
 
-	// check for operator rights
-	if (channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", "<channel> :You're not channel operator");
-		return;
-	}
-	
-	// check if user is on channel
+		channel = _channels[channelNames[i]];
 
-	// check if to-be-kicked-out-user exists
-	member = getUserIdByName(words[2]);
-	if (member == -1) {
-		sendError(user, "401", words[2] + " :No such nick/channel");
-		return;
-	}
+		// check if user is on channel
+		if (channel->isMember(user.getId()) == false) {
+			sendError(user, "442", channelNames[i] + " :You're not on that channel");
+			return;
+		}
 
-	// check if to=be-kicked-out-user is on channel
-	if (channel->isMember(member) == false) {
-		sendError(user, "441", words[2] + " " + words[1] + ":They aren't on that channel");
-		return;
-	}
-	
-	// assemble recipient list
+		// check for operator rights
+		if (channel->isOperator(user.getId()) == false) {
+			sendError(user, "482", "<channel> :You're not channel operator");
+			return;
+		}
+		
+		// assemble target list
+		targets.clear();
+		if (channelNames.size() == 1)
+			targets = userNames;
+		else
+			targets.push_back(userNames[i]);
 
-	// remove recipient from channel
-	
-	// send message to all members
+		// iterate over all targets
+		for (std::vector<std::string>::iterator it = targets.begin(); it < targets.end(); it++) {
+			
+			// check if to-be-kicked-out-user exists
+			member = getUserIdByName(*it);
+			if (member == -1) {
+				sendError(user, "401", *it + " :No such nick/channel");
+				continue;
+			}
+
+			// check if to=be-kicked-out-user is on channel
+			if (channel->isMember(member) == false) {
+				sendError(user, "441", *it + " " + channelNames[i] + ":They aren't on that channel");
+				continue;
+			}
+			
+			// remove recipient from channel
+			channel->removeMember(member);
+			_users[member]->removeChannel(channelNames[i]);
+			
+			// send message to all members
+			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channelNames[i] + " " + *it + " :" + message);
+		}
 	}
 }
 
 void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 	std::vector<std::string>	words;
 	Channel						*channel;
+	int							invitee;
 
 	words = splitString(line, " ");
 
@@ -527,14 +554,42 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 	}
 
 	// check if invitee exists
+	if (_users.find(getUserIdByName(words[1])) == _users.end()) {
+		sendError(user, "401", words[1] + " :No such nick/channel");
+		return;
+	}
 
 	// check if channel exists
+	if (_channels.find(words[2]) == _channels.end()) {
+		sendError(user, "403", words[2] + " :No such channel");
+		return;
+	}
+
+	// get invitee and channel
+	channel = _channels[words[2]];
+	invitee = getUserIdByName(words[1]);
+
+	// check if invitee is already in channel
+	if (channel->isMember(invitee) == true) {
+		sendError(user, "443", words[1] = " " + words[2] + " :is already on channel");
+		return;
+	}
 
 	// check if user is member in channel
+	if (channel->isMember(user.getId()) == false) {
+		sendError(user, "442", words[2] + " :You're not on that channel");
+		return;
+	}
 
 	// check if channel is invite-only and user is operator
+	if (channel->getModeI() == true && channel->isOperator(user.getId()) == false) {
+		sendError(user, "482", words[2] + " :You're not channel operator");
+		return;
+	}
 
-	// send invitee a server response
+	// send sender and invitee a server response
+	sendServerMessage(user, "341", words[2] + " " + words[1]);
+	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + ": " + words[2]);
 }
 
 void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
@@ -594,9 +649,35 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 	Channel						*channel;
 
 	words = splitString(line, " ");
-	channel = _channels[words[1]];
-	Mode 	mode = Mode(*this, user, *channel, line);
 
+	// check for correct syntax
+	if (words.size() < 3) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+		return;
+	}
+
+	// check if channel exists
+	if (_channels.find(words[1]) == _channels.end()) {
+		sendError(user, "403", words[2] + " :No such channel");
+		return;
+	}
+
+	channel = _channels[words[1]];
+
+	// check if user is on the channel
+	if (channel->isMember(user.getId()) == false) {
+		sendError(user, "442", words[1] + " :You're not on that channel");
+		return;
+	}
+
+	// check if user is operator
+	if (channel->isOperator(user.getId()) == false) {
+		sendError(user, "482", words[2] + " :You're not channel operator");
+		return;
+	}
+
+	// execute single mode changes
+	Mode	mode = Mode(*this, user, *channel, line);
 	mode.execute();
 }
 

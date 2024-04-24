@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/23 21:26:39 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 19:24:34 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,10 @@
 Channel::Channel(std::string name) : _name(name) {}
 
 Channel::~Channel() {}
+
+std::string Channel::getName() {
+	return _name;
+}
 
 void	Channel::addMember(int id) {
 	_members.push_back(id);

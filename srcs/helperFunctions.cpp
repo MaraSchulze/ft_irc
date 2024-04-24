@@ -6,13 +6,14 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/23 19:21:03 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 20:01:33 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "helperFunctions.hpp"
 #include <cctype>
 #include <ctime>
+#include <algorithm>
 
 std::string	firstWord(std::string line) {
 	size_t position;
@@ -76,4 +77,20 @@ std::string	getTime() {
     strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", timeInfo);
 	result = buffer;
 	return result;
+}
+
+int	converseIntoInt(std::string str) {
+	unsigned long int	limit;
+	
+	for (size_t i = 0; i < str.size(); i++) {
+		if (isdigit(str[i]) == false)
+			return false;
+	}
+	limit = 0;
+	for (int i = 0; i < std::min((int) (str.size()), 10); i++) {
+		limit = 10 * limit + (str[i] - '0');
+	}
+	if (limit < 1 || limit > 2147483647)
+		return false;
+	return true;
 }

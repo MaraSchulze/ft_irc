@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/23 17:46:09 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 21:09:17 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,11 +43,9 @@ class  IrcApplicationLayer {
 		void	handleTopic(User& user, std::string line);
 		void	handleMode(User& user, std::string line);
 		void	handleQuit(User& user, std::string line);
-		void	sendError(User& user, std::string errorcode, std::string errorMessage);
 		void	sendServerMessage(User& user, std::string code, std::string text);
 		void	sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text);
 		void	send(int id, std::string message);
-		void	sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text);
 		void	sendWelcome(User& user);
 	public:
 		IrcApplicationLayer(std::string password);
@@ -57,6 +55,8 @@ class  IrcApplicationLayer {
 		void		receive(int id, std::string line);
 		SendQueue&	getSendQueue();
 		int			getUserIdByName(std::string name);
+		void		sendError(User& user, std::string errorcode, std::string errorMessage);
+		void		sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text);
 };
 
 #endif
