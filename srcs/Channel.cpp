@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 16:22:35 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/23 21:26:39 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,10 +117,22 @@ int		Channel::getUserLimit() {
 	return _userLimit;
 }
 
+int		Channel::getCurrentMembersize() {
+	return _currentMemberSize;
+}
+
 std::string	Channel::getTopic() {
 	return _topic;
 }
 
 void	Channel::setTopic(std::string topic) {
 	_topic = topic;
+}
+
+void	Channel::addToInviteList(int id) {
+	_inviteList.push_back(id);
+}
+
+bool	Channel::isInInviteList(int id) {
+	return std::find(_inviteList.begin(), _inviteList.end(), id) != _inviteList.end();
 }

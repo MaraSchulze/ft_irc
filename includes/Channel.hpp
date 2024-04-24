@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:35:10 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 16:22:14 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/23 21:36:47 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,9 @@ class  Channel {
 		bool				_modeT;
 		std::string			_key;
 		int					_userLimit;
+		int					_currentMemberSize;
 		std::string			_topic;
+		std::vector<int>	_inviteList;
 	public:
 		Channel(std::string name);
 		~Channel();
@@ -50,8 +52,11 @@ class  Channel {
 		void	setKey(std::string key);
 		void	setUserLimit(int userLimit);
 		int		getUserLimit();
+		int		getCurrentMembersize();
 		std::string	getTopic();
 		void	setTopic(std::string topic);
+		void	addToInviteList(int id);
+		bool	isInInviteList(int id);
 };
 
 #endif

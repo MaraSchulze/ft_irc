@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 20:02:05 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 10:56:59 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 #include "helperFunctions.hpp"
 #include "Mode.hpp"
 #include <iostream>
+#include <arpa/inet.h>
+#include <algorithm>
 
 IrcApplicationLayer::IrcApplicationLayer(std::string _password) : _password(_password), _serverName(SERVERNAME) {}
 
@@ -38,6 +40,9 @@ void	IrcApplicationLayer::connect(int id, struct sockaddr_in address) {
 
 	// add to _users map
 	_users[id] = newUser;
+
+	// set host name
+	newUser->setHost(inet_ntoa(address.sin_addr));
 }
 
 void	IrcApplicationLayer::disconnect(int id) {
@@ -240,8 +245,12 @@ void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 
 void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	std::vector<std::string>	words;
-	Channel *channel;
-	std::vector<int>	members;
+	std::vector<std::string>	channelNames;
+	std::vector<std::string>	keys;
+	std::string					current;
+	Channel 					*channel;
+	std::string					key;
+	std::vector<int>			members;
 	std::string					memberList;
 
 	words = splitString(line, " ");
@@ -251,43 +260,94 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 		sendError(user, "461", words[0] + " :Not enough parameters");
 	}
 
-	for (size_t i = 1; i < words.size(); i++) {
+	// check if parameter is 0
+	if (words[1] == "0") {
+		// send PART to all channels the user is member in
+		return;
+	}
+
+	// get all channels
+	channelNames = splitString(words[1], ",");
+
+	// get all keys
+	if (words.size() > 2)
+		keys = splitString(words[2], ",");
+	else
+		keys = std::vector<std::string>();
+
+	// iterate over all channels
+	for (size_t i = 0; i < channelNames.size(); i++) {
+		// set current as current channel name
+		current = channelNames[i];
+
 		// check for #
-		if (words[i][0] != '#') {
+		if ((current)[0] != '#') {
 			sendError(user, "403", words[i] + " :No such channel");
 		}
 
-		// if channel doesnt exist we create it
-		if (_channels.find(words[1]) == _channels.end()) {
-			channel = new Channel(words[i]);
-			_channels[words[1]] = channel;
-			channel->addMember(user.getId());
-			// add user as operator
-			user.addChannel(words[1]);
-		} else {
-			// add user to channel
-			channel = _channels[words[i]];
-			channel->addMember(user.getId());
-			user.addChannel(words[1]);
+		// if channel doesnt exist we create it and add user to operator list
+		if (_channels.find(current) == _channels.end()) {
+			_channels[current] = new Channel(current);
+			_channels[current]->addOperator(user.getId());
+		}
+
+		// get channel, add user to channel and add channel to user's channel list
+		channel = _channels[current];
+		channel->addMember(user.getId());
+		user.addChannel(current);
+
+		// check if channel is invite only
+		if (channel->getModeI() == true && channel->isInInviteList(user.getId()) == false) {
+			sendError(user, "473", current + " :Cannot join channel (+i)");
+			return;
+		}
+
+		// check key if channel has key
+		if (i < keys.size())
+			key = keys[i];
+		else
+			key = "";
+		if (channel->getModeK() == true && channel->getKey() != key) {
+			sendError(user, "475", current + " :Cannot join channel (+k)");
+			return;	
+		}
+
+		// check limit if channel has user limit
+		if (channel->getModeL() == true && channel->getUserLimit() <= channel->getCurrentMembersize()) {
+			sendError(user, "471", current + " :Cannot join channel (+l)");
+			return;	
 		}
 		
-		// send response back to user
+		// send join message to all member of the channel
 		members = channel->getMembers();
+		sendPrefixMessageToMany(user, members, "JOIN", current);
+
+		// send RPL_TOPIC / RPL_NOTOPIC
+		if (channel->getModeT() == true)
+			sendServerMessage(user, "332", current + " :" + channel->getTopic());
+		else
+			sendServerMessage(user, "331", current + " :No topic is set");
+
+		// send member list
 		memberList = "";
 		for (std::vector<int>::iterator it = members.end() - 1; it >= members.begin(); it--) {
+			if (channel->isOperator(*it) == true)
+				memberList += "@";
 			memberList += _users[*it]->getNick();
 			memberList += " ";
 		}
-		sendError(user, "353", " = " + words[i] + " :" + memberList);
-		sendError(user, "331", words[1] + " :No topic is set");
+		sendServerMessage(user, "353", " = " + current + " :" + memberList);
+		sendServerMessage(user, "366", current + " :End of NAMES list");
 	}
 }	
 
 void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 	std::vector<std::string>	words;
+	std::string					message;
+	std::vector<std::string>	channelNames;
+	std::string					current;
 	Channel 					*channel;
 	std::vector<int>			members;
-	std::string					message;
 
 	words = splitString(line, " ");
 
@@ -297,27 +357,34 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 	}
 
 	// get message
-	if (words.size() == 3)
-		message = words[2];
+	message = ":";
+	if (words.size() >= 3)
+		message = getSeveralWords(words, 2);
 
-	for (size_t i = 1; i < words.size(); i++) {
-		// check for #
-		if (words[i][0] != '#' || _channels.find(words[i]) == _channels.end()) {
+	// get all channels
+	channelNames = splitString(words[1], ",");
+
+	// iterate over all channels
+	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
+		// set current to current channel name
+		current = *it;
+
+		// check if channel exists
+		if (_channels.find(current) == _channels.end()) {
 			sendError(user, "403", words[1] + " :No such channel");
+			return;
 		}
 
 		// check if user is on channel
-		channel = _channels[words[i]];
-		if (channel->isMember(user.getId())) {
-			sendError(user, "442", words[i] + " :You're not on that channel");
+		channel = _channels[current];
+		if (channel->isMember(user.getId()) == false) {
+			sendError(user, "442", current + " :You're not on that channel");
+			return;
 		}
 		
 		// send response back to user
 		members = channel->getMembers();
-		for (std::vector<int>::iterator it = members.end() - 1; it >= members.begin(); it--) {
-			if (*it != user.getId())
-				send(*it, ":" + user.getNick() + "!" + user.getUser() + "@" + user.getHost() + "PART " + words[i] + message);
-		}
+		sendPrefixMessageToMany(user, members, "PART", current + " :" + message);
 
 		// remove user from channel._members list
 		channel->removeMember(user.getId());
@@ -326,19 +393,28 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 
 void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	std::vector<std::string>	words;
-	Channel 					*channel;
 	std::string					message;
-	User						*member;
 	int							recipientId;
-
+	Channel 					*channel;
+	std::vector<int>			members;
+	std::vector<int>::iterator	it;
+	
 	words = splitString(line, " ");
 
-	// check for correct syntax
+	// check for recipient
+	if (words.size() < 2) {
+		sendError(user, "411", ":No recipient given (PRIVMSG)");
+		return;
+	}
 
-	// check for rights
-
+	// check for message
+	if (words.size() < 3) {
+		sendError(user, "412", ":No text to send");
+		return;
+	}
+	
 	// assemble message
-	message = words[2];
+	message = getSeveralWords(words, 2);
 
 	// is it a private message?
 	recipientId = getUserIdByName(words[1]);
@@ -347,28 +423,36 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 			sendError(user, "401", words[1] + " :No such nick/channel");
 			return;
 		} else {
-			sendPrefixMessage(user, *_users[recipientId], "PRIVMSG", words[1] + " :" + message);
+			sendPrefixMessage(user, *_users[recipientId], "PRIVMSG", words[1] + " " + message);
 			return;
 		}
 	}
 
-	// it seems to be a channel
+	// check if channel exists
 	if (_channels.find(words[1]) == _channels.end()) {
-		sendError(user, "403", words[1] + " :No such channel");
-	} else {
-		channel = _channels[words[1]];
-		for (std::vector<int>::iterator it = channel->getMembers().begin(); it != channel->getMembers().end(); it++) {
-			if (*it != user.getId()) {
-				member = _users[*it];
-				sendPrefixMessage(*member, user, "PRIVMSG", words[1] + " :" + message);
-			}
-		}
+		sendError(user, "401", words[1] + " :No such nick/channel");
+		return;
 	}
+
+	channel = _channels[words[1]];
+
+	// check if member is on channel
+	if (channel->isMember(user.getId()) == false) {
+		sendError(user, "404", words[1] + " :Cannot send to channel");
+		return;
+	}
+
+	// send to every member in channel except to user
+	members = channel->getMembers();
+	it = std::find(members.begin(), members.end(), user.getId());
+	members.erase(it);
+	sendPrefixMessageToMany(user, members, "PRIVMSG", words[1] + " :" + message);
 }
 
 void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	std::vector<std::string>	words;
 	std::string					message;
+	std::vector<std::string>	channels;
 	Channel						*channel;
 	int							member;
 
@@ -382,7 +466,16 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 
 	// get message if there is one
 	if (words.size() >= 4)
-		message = words[3];
+		message = getSeveralWords(words, 3);
+
+	// get channels
+
+	// get users
+
+	// is the channel to user rule adhered to?
+
+	// iterate over channels
+	for (size_t i = 0; i < channels.size(); i++) {
 
 	// check if channel exists
 	if (_channels.find(words[1]) == _channels.end()) {
@@ -397,6 +490,8 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 		sendError(user, "482", "<channel> :You're not channel operator");
 		return;
 	}
+	
+	// check if user is on channel
 
 	// check if to-be-kicked-out-user exists
 	member = getUserIdByName(words[2]);
@@ -411,7 +506,12 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 		return;
 	}
 	
+	// assemble recipient list
+
+	// remove recipient from channel
+	
 	// send message to all members
+	}
 }
 
 void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
@@ -438,15 +538,55 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 }
 
 void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
-	// check for correct syntax
+	std::vector<std::string>	words;
+	Channel						*channel;
+	std::vector<int>			members;
 
+	words = splitString(line, " ");
+
+	// check for correct syntax
+	if (words.size() < 2) {
+		sendError(user, "461", words[0] + " :Not enough parameters");
+		return;
+	}
+	
 	// check if channel exists
+	if (_channels.find(words[1]) == _channels.end()) {
+		sendError(user, "403", words[1] + " :No such channel");
+		return;
+	}
+	
+	channel = _channels[words[1]];
 
 	// check if user is on the channel
+	if (channel->isMember(user.getId()) == false) {
+		sendError(user, "442", words[1] + " :You're not on that channel");
+		return;
+	}
 
 	// check if channel has topic mode set and user is operator
+	if (channel->getModeT() == true && channel->isOperator(user.getId()) == false) {
+		sendError(user, "482", " :You're not channel operator");
+		return;
+	}
 
-	// check if topic is given and send back reply according to that
+	// if there is no topic parameter given
+	if (words.size() < 3) {
+		// if topic is set, we return topic
+		if (channel->getTopic() != "")
+			sendServerMessage(user, "332", words[1] + " :<topic>");
+		// else we return RPL_NOTOPIC
+		else
+			sendServerMessage(user, "331", words[1] + " :No topic is set");
+		return;
+	}
+	
+	// if there is topic parameter given, we set topic
+	channel->setTopic(getSeveralWords(words, 2));
+
+	// inform all members of topic change
+	members = channel->getMembers();
+	sendPrefixMessageToMany(user, members, "TOPIC", words[1] + " :" + channel->getTopic());
 }
 
 void	IrcApplicationLayer::handleMode(User& user, std::string line) {
@@ -461,19 +601,41 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 }
 
 void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
-	// check for correct syntax
+	std::vector<std::string>	words;
+	std::string					message;
+	std::vector<int>			recipients;
+	std::vector<std::string>	channelNames;
+	Channel						*channel;
+	std::vector<int>			members;
+
+	words = splitString(line, " ");
 
 	// get message if there is one
+	if (words.size() >= 2)
+		message = getSeveralWords(words, 1);
 
-	// get nick for return message
-
-	// delete user from _users map
+	// get channel names
+	channelNames = user.getChannels();
 
 	// delete user as member from all channels
+	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
+		channel = _channels[*it];
+		channel->removeMember(user.getId());
+	}
+
+	// get all recipients
+	recipients = std::vector<int>();
+	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
+		channel = _channels[*it];
+		members = channel->getMembers();
+		recipients.insert(recipients.end(), members.begin(), members.end());
+	}
 
 	// send the quit message to all members of all channels the user was in
-	// :<username>!user@host QUIT :Quit message here
+	sendPrefixMessageToMany(user, recipients, "QUIT", message);
 
+	// delete user from _users map
+	_users.erase(user.getId());
 }
 
 void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
@@ -490,11 +652,11 @@ void	IrcApplicationLayer::sendServerMessage(User& user, std::string code, std::s
 	send(user.getId(), message);
 }
 
-void	IrcApplicationLayer::sendPrefixMessage(User& user, User& sender, std::string command, std::string text) {
+void	IrcApplicationLayer::sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text) {
 	std::string message;
 
 	message = ":" + sender.getNick() + "!" + sender.getUser() + "@" + sender.getHost() + " " + command + " " + text;
-	send(user.getId(), message);
+	send(receiver.getId(), message);
 }
 
 void	IrcApplicationLayer::sendWelcome(User& user) {
@@ -506,4 +668,9 @@ void	IrcApplicationLayer::sendWelcome(User& user) {
 
 void	IrcApplicationLayer::send(int id, std::string message) {
 	_sendQueue.push(id, message);
+}
+
+void	IrcApplicationLayer::sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text) {
+	for (std::vector<int>::iterator it = ids.begin(); it < ids.end(); it++)
+		sendPrefixMessage(user, *_users[*it], command, text);
 }

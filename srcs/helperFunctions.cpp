@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 13:45:38 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/23 19:21:03 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,10 @@ std::string	getSeveralWords(std::vector<std::string> words, int begin) {
 
 	for (size_t i = begin; i < words.size(); i++) {
 		result += words[i];
+		result += " ";
 	}
+	if (result.size() > 1 && result[0] == ':')
+		result = result.substr(1);
 	return result;
 }
 

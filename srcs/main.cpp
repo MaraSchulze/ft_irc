@@ -6,15 +6,12 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:09:12 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 19:31:13 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 10:41:57 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "IrcApplicationLayer.hpp"
 #include <iostream>
-
-// debug
-#include <netinet/in.h> 
 
 int main(int argc, char **argv) {
 	if (argc != 3) {
@@ -30,13 +27,15 @@ int main(int argc, char **argv) {
 	ircApp.receive(100, "PASS doh");
 	ircApp.receive(100, "NICK nicky");
 	ircApp.receive(100, "USER whoever 0 * :whoever");
-	ircApp.receive(100, "JOIN #testchannel");
+	ircApp.receive(100, "JOIN #testchannel,#secondchannel key");
 	ircApp.receive(100, "GARBLE");
+	ircApp.receive(100, "TOPIC #testchannel :pigs can fly.");
 	ircApp.connect(101, address);
 	ircApp.receive(101, "PASS doh");
 	ircApp.receive(101, "NICK wicky");
 	ircApp.receive(101, "USER x 0 * :x");
 	ircApp.receive(101, "JOIN #testchannel");
 	ircApp.receive(100, "PRIVMSG #testchannel :Hello");
+	ircApp.receive(100, "QUIT :im off");
 	ircApp.disconnect(100);
 }

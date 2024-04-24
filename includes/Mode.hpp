@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 14:57:30 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 16:27:52 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/23 18:43:44 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ class  Mode {
 	private:
 		IrcApplicationLayer&		_ircApp;
 		User&						_user;
-		Channel						_channel;
+		Channel&					_channel;
 		std::string					_line;
 		std::vector<std::string>	_modes;
 		std::vector<std::string>	_parameters;

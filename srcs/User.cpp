@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 19:26:49 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/24 09:59:17 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,9 +26,12 @@ int	User::getId() {
 }
 
 std::string	User::getHost() {
-	return "www.dummy.com";
+	return _host;
 }
 
+void User::setHost(char *host) {
+	_host = std::string(host);
+}
 void	User::setAuthStatusPass() {
 	_authStatusPass = 1;
 }

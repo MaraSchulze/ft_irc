@@ -6,7 +6,7 @@
 #    By: marschul <marschul@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/04/17 16:12:42 by marschul          #+#    #+#              #
-#    Updated: 2024/04/22 16:46:29 by marschul         ###   ########.fr        #
+#    Updated: 2024/04/24 11:01:44 by marschul         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,7 +15,6 @@ NAME	:= ircserv
 CC 		:= c++
 CFLAGS 	:= -Wall -Wextra -Werror -std=c++98 
 DFLAGS 	:= -Wall -Wextra -g3 -fsanitize=address
-DNAME 	:= ircserv_debug
 HEADERS = -I./includes
 
 SRCDIR		:= srcs
@@ -42,4 +41,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all, clean, fclean, re, debug
+.PHONY: all, clean, fclean, re

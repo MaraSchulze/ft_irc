@@ -3,3 +3,7 @@ Substitute DFLAGS with CFLAGS in 2 rules for terminal submit!
 what happens if sth goes wrong in the auth process? Should we disconnect?
 
 PART and JOIN don't work with multiple channels!
+
+we must implement that a command to a not registered user returns an error
+
+users and channels are not correctly deleted, if just a single element is erased from the maps
