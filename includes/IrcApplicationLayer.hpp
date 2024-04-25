@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 21:09:17 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/25 17:56:12 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ class  IrcApplicationLayer {
 		std::string						_password;
 		std::string						_serverName;
 		SendQueue						_sendQueue;
+		std::string						_serverCreationTime;
 
 		void	dispatchCommand(User& user, std::string line);
 		void	handlePass(User& user, std::string line);
@@ -47,6 +48,9 @@ class  IrcApplicationLayer {
 		void	sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text);
 		void	send(int id, std::string message);
 		void	sendWelcome(User& user);
+		User	*getUser(int id);
+		Channel	*getChannel(std::string name);
+		void	deleteUser(int id);
 	public:
 		IrcApplicationLayer(std::string password);
 		~IrcApplicationLayer();

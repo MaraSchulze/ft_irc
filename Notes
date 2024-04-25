@@ -2,8 +2,16 @@ Substitute DFLAGS with CFLAGS in 2 rules for terminal submit!
 
 what happens if sth goes wrong in the auth process? Should we disconnect?
 
-PART and JOIN don't work with multiple channels!
-
 we must implement that a command to a not registered user returns an error
 
-users and channels are not correctly deleted, if just a single element is erased from the maps
+There are users in inviteList and operators that are not correctly handeled if a user is kicked for instance!
+
+Nick has only 9 chars
+channel has certain syntax
+command has certain syntax
+
+What if mode change fails? Server message must be fitted accordingly.
+
+----------------
+
+nc -v irc.uni-erlangen.de 6667

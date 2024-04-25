@@ -1,0 +1,49 @@
+JOIN
+
+JOIN #channel
+JOIN !channel
+JOIN #channel1,#channel2 
+JOIN #channel1,#channel2 key1
+JOIN #channel1,#channel2 key1,key2
+JOIN #channel1,#channel2 key1,key2,key3
+join if channel doesnt exist and if channel exists
+join if user is alreasy on channel
+join if user is not registered
+join without parameters
+join invite-only channel
+join if user limit is full
+join with wrong key
+JOIN 0
+
+
+
+PART 
+
+PART #channel, if channel exists
+PART #channel, if channel doesnt exist
+PART #channel1,#channel2, if one channel exists and the other doesnt
+PART #channel, if user is not on channel
+PART #channel message
+
+
+
+KICK
+
+KICK #channel nick comment, if channel and nick exist and nick is on channel 
+KICK #channel nick, if channel doesnt exist 
+KICK #channel nick, if nick doesnt exist 
+KICK #channel1,#channel2 nick1,nick2 
+KICK #channel1,#channel2 nick1
+KICK #channel1 nick1,nick2,nick3
+KICK #channel nick, if operator is not on channel 
+KICK #channel nick, if user isnt operator 
+
+
+
+TOPIC
+
+TOPIC #channel, if channel exists and user is on channel
+TOPIC #channel topic, if channel exists and user is on channel and user is operator
+TOPIC #channel, if user is not on channel
+TOPIC #channel, if channel doesnt exist
+TOPIC #channel topic, if user is not operator

@@ -6,7 +6,7 @@
 #    By: marschul <marschul@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/04/17 16:12:42 by marschul          #+#    #+#              #
-#    Updated: 2024/04/24 11:01:44 by marschul         ###   ########.fr        #
+#    Updated: 2024/04/25 14:48:35 by marschul         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,9 @@ HEADERS = -I./includes
 SRCDIR		:= srcs
 OBJDIR		:= objs
 
-SRCS 	:= main.cpp IrcApplicationLayer.cpp User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp
+SRCS 	:= main.cpp IrcApplicationLayer.cpp User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp \
+			testApplicationLayer.cpp 
+
 SRCS_WITH_DIRPREFIX	:= $(addprefix $(SRCDIR)/, $(SRCS))
 
 OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS_WITH_DIRPREFIX))

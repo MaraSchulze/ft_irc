@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 19:11:18 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/25 19:07:57 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,9 @@
 #include <arpa/inet.h>
 #include <algorithm>
 
-IrcApplicationLayer::IrcApplicationLayer(std::string _password) : _password(_password), _serverName(SERVERNAME) {}
+IrcApplicationLayer::IrcApplicationLayer(std::string password) : _password(password), _serverName(SERVERNAME) {
+	//_serverCreationTime = getTime();
+}
 
 IrcApplicationLayer::~IrcApplicationLayer() {
 	// delete all User and Channel objects that we have newed
@@ -47,32 +49,26 @@ void	IrcApplicationLayer::connect(int id, struct sockaddr_in address) {
 
 void	IrcApplicationLayer::disconnect(int id) {
 	User						*user;
-	std::vector<std::string>	channels;
-	Channel						*channel;
 
-	if (_users.find(id) != _users.end()) {
-		user = _users[id];
-		// remove user from all _channels
-		channels = user->getChannels();
-		for (std::vector<std::string>::iterator it = channels.begin(); it < channels.end(); it++) {
-			channel = _channels[*it];
-			channel->removeMember(id);
-		}
-		// remove user from _users map
-		_users.erase(id);
-		std::cout << "[debug] User " << id << " disconnected" << std::endl;
-	}
+	user = getUser(id);
+
+	if (user == NULL)
+		return;
+
+	// send disconnect string to client
+	send(id, "ERROR :Closing Link: " + user->getNick() + "[" + user->getHost() + "]");
+
+	// remove user from _users map
+	deleteUser(id);
 }
 
 void	IrcApplicationLayer::receive(int id, std::string line) {
 	User	*user;
 	
-	// Lookup user with id
-	if (_users.find(id) != _users.end()) {
-		user = _users[id];
+	user = getUser(id);
+	if (user != NULL)
 		// dispatch command
 		dispatchCommand(*user, line);
-	} 
 	else
 		std::cout << "Error: Received a message from a client that doesn't exist." << std::endl;
 }	
@@ -231,8 +227,6 @@ void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 	// set user and real name
 	user.setUser(words[1]);
 	realName = getSeveralWords(words, 4);
-	if (realName[0] == ':')
-		realName = realName.substr(1);
 	user.setRealName(realName);
 
 	// set auth status user
@@ -254,6 +248,12 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	std::string					memberList;
 
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for correct syntax
 	if (words.size() < 2) {
@@ -285,16 +285,14 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 			sendError(user, "403", words[i] + " :No such channel");
 		}
 
+		channel = getChannel(current);
+
 		// if channel doesnt exist we create it and add user to operator list
-		if (_channels.find(current) == _channels.end()) {
+		if (channel == NULL) {
 			_channels[current] = new Channel(current);
 			_channels[current]->addOperator(user.getId());
+			channel = getChannel(current);
 		}
-
-		// get channel, add user to channel and add channel to user's channel list
-		channel = _channels[current];
-		channel->addMember(user.getId());
-		user.addChannel(current);
 
 		// check if channel is invite only
 		if (channel->getModeI() == true && channel->isInInviteList(user.getId()) == false) {
@@ -313,22 +311,25 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 		}
 
 		// check limit if channel has user limit
-		if (channel->getModeL() == true && channel->getUserLimit() <= channel->getCurrentMembersize()) {
+		if (channel->getModeL() == true && channel->memberSizeIsReached()) {
 			sendError(user, "471", current + " :Cannot join channel (+l)");
 			return;	
 		}
-		
+
+		// add user to channel and add channel to user's channel list
+		channel->addMember(user.getId());
+		user.addChannel(current);
+
 		// send join message to all member of the channel
 		members = channel->getMembers();
 		sendPrefixMessageToMany(user, members, "JOIN", current);
 
-		// send RPL_TOPIC / RPL_NOTOPIC
-		if (channel->getModeT() == true)
+		// send RPL_TOPIC
+		if (channel->getTopic() != "")
 			sendServerMessage(user, "332", current + " :" + channel->getTopic());
-		else
-			sendServerMessage(user, "331", current + " :No topic is set");
 
 		// send member list
+		members = channel->getMembers();
 		memberList = "";
 		for (std::vector<int>::iterator it = members.end() - 1; it >= members.begin(); it--) {
 			if (channel->isOperator(*it) == true)
@@ -336,6 +337,7 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 			memberList += _users[*it]->getNick();
 			memberList += " ";
 		}
+		memberList = memberList.substr(0, memberList.size() - 1);
 		sendServerMessage(user, "353", " = " + current + " :" + memberList);
 		sendServerMessage(user, "366", current + " :End of NAMES list");
 	}
@@ -357,7 +359,7 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 	}
 
 	// get message
-	message = ":";
+	message = "";
 	if (words.size() >= 3)
 		message = getSeveralWords(words, 2);
 
@@ -388,6 +390,7 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 
 		// remove user from channel._members list
 		channel->removeMember(user.getId());
+		user.removeChannel(current);
 	}
 }
 
@@ -428,13 +431,13 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 		}
 	}
 
+	channel = getChannel(words[1]);
+
 	// check if channel exists
-	if (_channels.find(words[1]) == _channels.end()) {
+	if (channel == NULL) {
 		sendError(user, "401", words[1] + " :No such nick/channel");
 		return;
 	}
-
-	channel = _channels[words[1]];
 
 	// check if member is on channel
 	if (channel->isMember(user.getId()) == false) {
@@ -487,13 +490,13 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	// iterate over channels
 	for (size_t i = 0; i < channelNames.size(); i++) {
 
+		channel = getChannel(channelNames[i]);
+
 		// check if channel exists
-		if (_channels.find(channelNames[i]) == _channels.end()) {
+		if (channel == NULL) {
 			sendError(user, "403", words[1] + " :No such channel");
 			return;
 		}
-
-		channel = _channels[channelNames[i]];
 
 		// check if user is on channel
 		if (channel->isMember(user.getId()) == false) {
@@ -553,21 +556,22 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 		return;
 	}
 
+
+	// get invitee and channel
+	channel = getChannel(words[2]);
+	invitee = getUserIdByName(words[1]);
+	
 	// check if invitee exists
-	if (_users.find(getUserIdByName(words[1])) == _users.end()) {
+	if (invitee == -1) {
 		sendError(user, "401", words[1] + " :No such nick/channel");
 		return;
 	}
 
 	// check if channel exists
-	if (_channels.find(words[2]) == _channels.end()) {
+	if (channel == NULL) {
 		sendError(user, "403", words[2] + " :No such channel");
 		return;
 	}
-
-	// get invitee and channel
-	channel = _channels[words[2]];
-	invitee = getUserIdByName(words[1]);
 
 	// check if invitee is already in channel
 	if (channel->isMember(invitee) == true) {
@@ -605,23 +609,17 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 		return;
 	}
 	
+	channel = getChannel(words[1]);
+
 	// check if channel exists
-	if (_channels.find(words[1]) == _channels.end()) {
+	if (channel == NULL) {
 		sendError(user, "403", words[1] + " :No such channel");
 		return;
 	}
 	
-	channel = _channels[words[1]];
-
 	// check if user is on the channel
 	if (channel->isMember(user.getId()) == false) {
 		sendError(user, "442", words[1] + " :You're not on that channel");
-		return;
-	}
-
-	// check if channel has topic mode set and user is operator
-	if (channel->getModeT() == true && channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", " :You're not channel operator");
 		return;
 	}
 
@@ -635,7 +633,13 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 			sendServerMessage(user, "331", words[1] + " :No topic is set");
 		return;
 	}
-	
+
+	// check if channel has topic mode set and user is operator
+	if (channel->getModeT() == true && channel->isOperator(user.getId()) == false) {
+		sendError(user, "482", " :You're not channel operator");
+		return;
+	}
+
 	// if there is topic parameter given, we set topic
 	channel->setTopic(getSeveralWords(words, 2));
 
@@ -656,13 +660,13 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 		return;
 	}
 
+	channel = getChannel(words[1]);
+
 	// check if channel exists
-	if (_channels.find(words[1]) == _channels.end()) {
+	if (channel == NULL) {
 		sendError(user, "403", words[2] + " :No such channel");
 		return;
 	}
-
-	channel = _channels[words[1]];
 
 	// check if user is on the channel
 	if (channel->isMember(user.getId()) == false) {
@@ -700,24 +704,29 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 
 	// delete user as member from all channels
 	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
-		channel = _channels[*it];
-		channel->removeMember(user.getId());
+		channel = getChannel(*it);
+		if (channel != NULL)
+			channel->removeMember(user.getId());
 	}
 
 	// get all recipients
 	recipients = std::vector<int>();
 	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
-		channel = _channels[*it];
-		members = channel->getMembers();
-		recipients.insert(recipients.end(), members.begin(), members.end());
+		channel = getChannel(*it);
+		if (channel != NULL) {
+			members = channel->getMembers();
+			recipients.insert(recipients.end(), members.begin(), members.end());
+		}		
 	}
 
 	// send the quit message to all members of all channels the user was in
 	sendPrefixMessageToMany(user, recipients, "QUIT", message);
 
 	// delete user from _users map
-	_users.erase(user.getId());
+	deleteUser(user.getId());
 }
+
+// ******************* send functions ******************
 
 void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
 	std::string message;
@@ -743,7 +752,7 @@ void	IrcApplicationLayer::sendPrefixMessage(User& sender, User& receiver, std::s
 void	IrcApplicationLayer::sendWelcome(User& user) {
 	sendServerMessage(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
 	sendServerMessage(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
-	sendServerMessage(user, "003", "This server was created " + getTime());
+	sendServerMessage(user, "003", "This server was created " + _serverCreationTime);
 	sendServerMessage(user, "004", _serverName + " 1.0.0" + " - " + "iklot");
 }
 
@@ -754,4 +763,41 @@ void	IrcApplicationLayer::send(int id, std::string message) {
 void	IrcApplicationLayer::sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text) {
 	for (std::vector<int>::iterator it = ids.begin(); it < ids.end(); it++)
 		sendPrefixMessage(user, *_users[*it], command, text);
+}
+
+// ********* helper functions **********************
+
+User	*IrcApplicationLayer::getUser(int id) {
+	if (_users.find(id) != _users.end())
+		return _users[id];
+	else
+		return NULL;
+}
+
+Channel	*IrcApplicationLayer::getChannel(std::string name) {
+	if (_channels.find(name) != _channels.end())
+		return _channels[name];
+	else
+		return NULL;
+}
+
+void	IrcApplicationLayer::deleteUser(int id) {
+	User						*user;
+	Channel						*channel;
+	std::vector<std::string>	channels;
+
+	user = getUser(id);
+	if (user != NULL) {
+		// remove user from all _channels
+		channels = user->getChannels();
+		for (std::vector<std::string>::iterator it = channels.begin(); it < channels.end(); it++) {
+			channel = getChannel(*it);
+			if (channel != NULL)
+				channel->removeMember(id);
+		}
+
+		// delete user from _users map
+		delete user;
+		_users.erase(id);
+	}
 }

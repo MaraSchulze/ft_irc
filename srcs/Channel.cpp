@@ -6,14 +6,14 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 19:24:34 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/25 18:58:13 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Channel.hpp"
 #include <algorithm>
 
-Channel::Channel(std::string name) : _name(name) {}
+Channel::Channel(std::string name) : _name(name), _currentMemberSize(0) {}
 
 Channel::~Channel() {}
 
@@ -23,6 +23,7 @@ std::string Channel::getName() {
 
 void	Channel::addMember(int id) {
 	_members.push_back(id);
+	_currentMemberSize++;
 }
 
 void	Channel::removeMember(int id) {
@@ -31,6 +32,7 @@ void	Channel::removeMember(int id) {
 	while (it != _members.end()) {
 		if (*it == id) {
 			_members.erase(it);
+			_currentMemberSize--;
 			break;
 		}
 		else 
@@ -121,8 +123,8 @@ int		Channel::getUserLimit() {
 	return _userLimit;
 }
 
-int		Channel::getCurrentMembersize() {
-	return _currentMemberSize;
+int		Channel::memberSizeIsReached() {
+	return _currentMemberSize >= _userLimit;
 }
 
 std::string	Channel::getTopic() {

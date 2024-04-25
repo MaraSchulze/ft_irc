@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 20:01:33 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/25 16:05:19 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,10 +45,13 @@ std::vector<std::string> splitString(const std::string &str, const std::string& 
 std::string	getSeveralWords(std::vector<std::string> words, int begin) {
 	std::string	result;
 
+	if (words[begin][0] != ':')
+		return words[begin];
 	for (size_t i = begin; i < words.size(); i++) {
 		result += words[i];
 		result += " ";
 	}
+	result = result.substr(0, result.size() - 1);
 	if (result.size() > 1 && result[0] == ':')
 		result = result.substr(1);
 	return result;
