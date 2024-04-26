@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/25 16:05:19 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/26 14:41:59 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ std::vector<std::string> splitString(const std::string &str, const std::string& 
         if (start != end) {
             words.push_back(str.substr(start, end - start));
         }
-        start = end + 1;
+        start = end + separator.size();
         end = str.find(separator, start);
     }
     if (start < str.length()) {

@@ -1,0 +1,15 @@
+[debug] User 4 connected
+[received] CAP LS
+PING :localhost
+1[sendqueue] (id 4, message CAP * LS :
+)
+[sendqueue] (id 4, message PONG:localhost
+)
+[to be sent] 4 CAP * LS :
+1[to be sent] 4 PONG:localhost
+1[received] CAP END
+PASS :doh
+NICK MissPiggy
+USER kvirc 0 localhost :1,8KVIrc 5.0.0 Aria http://kvirc.net/
+1[sendqueue] (id 4, message :irc.rockingpiggies.com 464  :Password incorrect
+)

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/25 19:07:57 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/26 15:46:58 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <algorithm>
 
 IrcApplicationLayer::IrcApplicationLayer(std::string password) : _password(password), _serverName(SERVERNAME) {
-	//_serverCreationTime = getTime();
+	_serverCreationTime = getTime();
 }
 
 IrcApplicationLayer::~IrcApplicationLayer() {
@@ -60,15 +60,24 @@ void	IrcApplicationLayer::disconnect(int id) {
 
 	// remove user from _users map
 	deleteUser(id);
+
+	// here we have to notify Yalda that we want to disconnect the socket.
 }
 
 void	IrcApplicationLayer::receive(int id, std::string line) {
-	User	*user;
-	
+	User						*user;
+	std::vector<std::string>	commandLines;
+
 	user = getUser(id);
-	if (user != NULL)
-		// dispatch command
-		dispatchCommand(*user, line);
+	if (user != NULL) {
+		// split into commands
+		commandLines = splitString(line, "\r\n");
+
+		// dispatch commands
+		for (std::vector<std::string>::iterator it = commandLines.begin(); it < commandLines.end(); it++) {
+			dispatchCommand(*user, *it);
+		}
+	}
 	else
 		std::cout << "Error: Received a message from a client that doesn't exist." << std::endl;
 }	
@@ -92,11 +101,11 @@ int		IrcApplicationLayer::getUserIdByName(std::string name) {
 
 void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 	std::string	command;
-	std::string commands[11] = {"PASS", "NICK", "USER", "JOIN", "PART", "PRIVMSG", "KICK", "INVITE", "TOPIC", "MODE", "QUIT"};
+	std::string commands[13] = {"PASS", "NICK", "USER", "JOIN", "PART", "PRIVMSG", "KICK", "INVITE", "TOPIC", "MODE", "QUIT", "CAP", "PING"};
 	int	index;
 
 	command = firstWord(line);
-	for (index = 0; index < 11; index++) {
+	for (index = 0; index < 13; index++) {
 		if (command == commands[index])
 			break;
 	}
@@ -123,6 +132,10 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 					return;
 		case 10	:	handleQuit(user, line);
 					return;
+		case 11 :	handleCap(user, line);
+					return;
+		case 12	:	handlePing(user, line);
+					return;
 		default :	sendError(user, "421", command + " :Unknown command");
 	}
 }
@@ -133,7 +146,7 @@ void	IrcApplicationLayer::handlePass(User& user, std::string line) {
 	words = splitString(line, " ");
 
 	// check for correct syntax
-	if (words.size() != 2) {
+	if (words.size() < 2) {
 		sendError(user, "464", ":Password incorrect");
 		return;
 	}
@@ -151,7 +164,7 @@ void	IrcApplicationLayer::handlePass(User& user, std::string line) {
 	}
 
 	// check for right password
-	if (_password != words[1]) {
+	if (_password != getSeveralWords(words, 1)) {
 		sendError(user, "464", ":Password incorrect");
 		return;
 	}
@@ -692,6 +705,7 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	std::vector<std::string>	channelNames;
 	Channel						*channel;
 	std::vector<int>			members;
+	int							id;
 
 	words = splitString(line, " ");
 
@@ -722,8 +736,28 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	// send the quit message to all members of all channels the user was in
 	sendPrefixMessageToMany(user, recipients, "QUIT", message);
 
-	// delete user from _users map
-	deleteUser(user.getId());
+	id = user.getId();
+
+	// call disconnect
+	disconnect(id);
+}
+
+void	IrcApplicationLayer::handleCap(User& user, std::string line) {
+	std::vector<std::string>	words;
+
+	words = splitString(line, " ");
+
+	if (words[1] == "LS")
+		send(user.getId(), std::string("CAP * LS :"));
+	//send(user.getId(), "CAP * END");
+}
+
+void	IrcApplicationLayer::handlePing(User& user, std::string line) {
+	std::vector<std::string>	words;
+
+	words = splitString(line, " ");
+
+	send(user.getId(), std::string("PONG") + words[1]);
 }
 
 // ******************* send functions ******************
@@ -753,11 +787,11 @@ void	IrcApplicationLayer::sendWelcome(User& user) {
 	sendServerMessage(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
 	sendServerMessage(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
 	sendServerMessage(user, "003", "This server was created " + _serverCreationTime);
-	sendServerMessage(user, "004", _serverName + " 1.0.0" + " - " + "iklot");
+	sendServerMessage(user, "004", _serverName + " ircserv-1.0.0" + " oiws " + "obtkmlvsni");
 }
 
 void	IrcApplicationLayer::send(int id, std::string message) {
-	_sendQueue.push(id, message);
+	_sendQueue.push(id, message + '\n');
 }
 
 void	IrcApplicationLayer::sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text) {

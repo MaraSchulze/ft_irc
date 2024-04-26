@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/25 17:56:12 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/26 14:47:47 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,8 @@ class  IrcApplicationLayer {
 		void	handleTopic(User& user, std::string line);
 		void	handleMode(User& user, std::string line);
 		void	handleQuit(User& user, std::string line);
+		void	handleCap(User& user, std::string line);
+		void	handlePing(User& user, std::string line);
 		void	sendServerMessage(User& user, std::string code, std::string text);
 		void	sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text);
 		void	send(int id, std::string message);
