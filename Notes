@@ -15,3 +15,7 @@ What if mode change fails? Server message must be fitted accordingly.
 ----------------
 
 nc -v irc.uni-erlangen.de 6667
+
+---------------
+
+privmsg, mode without parameters, quit

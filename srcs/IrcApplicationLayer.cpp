@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/26 15:46:58 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/27 20:26:27 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,9 @@ void	IrcApplicationLayer::disconnect(int id) {
 void	IrcApplicationLayer::receive(int id, std::string line) {
 	User						*user;
 	std::vector<std::string>	commandLines;
+
+	// debug
+	std::cout << "[debug received] " << line << std::endl;
 
 	user = getUser(id);
 	if (user != NULL) {
@@ -136,7 +139,9 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 					return;
 		case 12	:	handlePing(user, line);
 					return;
-		default :	sendError(user, "421", command + " :Unknown command");
+		default :	if (command == "NOTICE")
+						return;
+					sendError(user, "421", command + " :Unknown command");
 	}
 }
 
@@ -194,13 +199,6 @@ void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 		sendError(user, "432", nick + " :Erroneous nickname");
 		return;
 	}
-
-	// check if a NICK command has already been sent in this registration
-	if (user.getAuthStatusNick() == true) {
-		sendError(user, "462", ":Unauthorized command (already registered)");
-		return;
-	}
-	
 	// check if nick is already in use
 	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
 		currentUser = (*it).second;
@@ -211,10 +209,18 @@ void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 		}
 	}
 
+	// if we are already registered, send acknowledgement, change nick and return
+	if (user.checkAuthStatus() == true) {
+		sendPrefixMessage(user, user, "NICK", words[1]);
+		user.setNick(words[1]);
+		return;
+	}
+	
+	// set new nick
 	user.setNick(nick);
+	
+	// set auth status nick and if registration is complete, send welcome messages
 	user.setAuthStatusNick();
-
-	// Is registration complete?
 	if (user.checkAuthStatus() == true)
 		sendWelcome(user);
 }	
@@ -640,7 +646,7 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 	if (words.size() < 3) {
 		// if topic is set, we return topic
 		if (channel->getTopic() != "")
-			sendServerMessage(user, "332", words[1] + " :<topic>");
+			sendServerMessage(user, "332", words[1] + " :" + channel->getTopic());
 		// else we return RPL_NOTOPIC
 		else
 			sendServerMessage(user, "331", words[1] + " :No topic is set");
@@ -664,6 +670,9 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 	std::vector<std::string>	words;
 	Channel						*channel;
+
+	// debug
+	//std::cout << "[debug mode] " + line << std::endl;
 
 	words = splitString(line, " ");
 

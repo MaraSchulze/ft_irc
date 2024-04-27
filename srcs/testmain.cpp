@@ -11,7 +11,7 @@
 
 int main() {
     int listener = socket(AF_INET, SOCK_STREAM, 0);
-    if (listener < 0) {
+    if (listener == -1) {
         perror("socket");
         exit(1);
     }
@@ -19,10 +19,9 @@ int main() {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(6667); // Port number
-    addr.sin_addr.s_addr = htonl(INADDR_ANY); // Listen on any network interface
-
-    if (bind(listener, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+    addr.sin_port = htons(6667);
+	addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    if (bind(listener, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
         perror("bind");
         exit(2);
     }

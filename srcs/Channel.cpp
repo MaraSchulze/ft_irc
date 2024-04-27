@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/25 18:58:13 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/27 20:42:50 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -137,6 +137,19 @@ void	Channel::setTopic(std::string topic) {
 
 void	Channel::addToInviteList(int id) {
 	_inviteList.push_back(id);
+}
+
+void	Channel::removeFromInviteList(int id) {
+	std::vector<int>::iterator it = _inviteList.begin();
+
+	while (it != _inviteList.end()) {
+		if (*it == id) {
+			_inviteList.erase(it);
+			break;
+		}
+		else 
+			it++;
+	}
 }
 
 bool	Channel::isInInviteList(int id) {

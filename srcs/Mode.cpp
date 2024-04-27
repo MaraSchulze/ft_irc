@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 15:05:13 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 21:14:03 by marschul         ###   ########.fr       */
+/*   Updated: 2024/04/27 19:35:52 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,6 +89,9 @@ bool	Mode::parse() {
 				else
 					_parameters.push_back(words[parameterWordIndex++]);
 			}
+			else 
+				_parameters.push_back("");
+
 			i++;
 		}
 		flagWordIndex = parameterWordIndex;
