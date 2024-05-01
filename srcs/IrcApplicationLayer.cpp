@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/27 20:26:27 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/01 17:14:42 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -282,6 +282,10 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 	// check if parameter is 0
 	if (words[1] == "0") {
 		// send PART to all channels the user is member in
+		channelNames = user.getChannels();
+		for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
+			handlePart(user, "PART " + *it);
+		}
 		return;
 	}
 
@@ -301,7 +305,8 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 
 		// check for #
 		if ((current)[0] != '#') {
-			sendError(user, "403", words[i] + " :No such channel");
+			sendError(user, "403", current + " :No such channel");
+			continue;
 		}
 
 		channel = getChannel(current);
@@ -316,7 +321,7 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 		// check if channel is invite only
 		if (channel->getModeI() == true && channel->isInInviteList(user.getId()) == false) {
 			sendError(user, "473", current + " :Cannot join channel (+i)");
-			return;
+			continue;
 		}
 
 		// check key if channel has key
@@ -326,13 +331,13 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 			key = "";
 		if (channel->getModeK() == true && channel->getKey() != key) {
 			sendError(user, "475", current + " :Cannot join channel (+k)");
-			return;	
+			continue;	
 		}
 
 		// check limit if channel has user limit
 		if (channel->getModeL() == true && channel->memberSizeIsReached()) {
 			sendError(user, "471", current + " :Cannot join channel (+l)");
-			return;	
+			continue;	
 		}
 
 		// add user to channel and add channel to user's channel list
@@ -392,7 +397,7 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 
 		// check if channel exists
 		if (_channels.find(current) == _channels.end()) {
-			sendError(user, "403", words[1] + " :No such channel");
+			sendError(user, "403", current + " :No such channel");
 			return;
 		}
 
@@ -513,7 +518,7 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 
 		// check if channel exists
 		if (channel == NULL) {
-			sendError(user, "403", words[1] + " :No such channel");
+			sendError(user, "403", channelNames[i] + " :No such channel");
 			return;
 		}
 
@@ -525,7 +530,7 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 
 		// check for operator rights
 		if (channel->isOperator(user.getId()) == false) {
-			sendError(user, "482", "<channel> :You're not channel operator");
+			sendError(user, "482", channelNames[i] + " :You're not channel operator");
 			return;
 		}
 		
@@ -551,13 +556,13 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 				sendError(user, "441", *it + " " + channelNames[i] + ":They aren't on that channel");
 				continue;
 			}
+				
+			// send message to all members
+			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channelNames[i] + " " + *it + " :" + message);
 			
 			// remove recipient from channel
 			channel->removeMember(member);
-			_users[member]->removeChannel(channelNames[i]);
-			
-			// send message to all members
-			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channelNames[i] + " " + *it + " :" + message);
+			_users[member]->removeChannel(channelNames[i]);	
 		}
 	}
 }
@@ -574,7 +579,6 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 		sendError(user, "461", words[0] + " :Not enough parameters");
 		return;
 	}
-
 
 	// get invitee and channel
 	channel = getChannel(words[2]);
@@ -612,7 +616,7 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 
 	// send sender and invitee a server response
 	sendServerMessage(user, "341", words[2] + " " + words[1]);
-	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + ": " + words[2]);
+	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + " " + words[2]);
 }
 
 void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
@@ -655,7 +659,7 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 
 	// check if channel has topic mode set and user is operator
 	if (channel->getModeT() == true && channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", " :You're not channel operator");
+		sendError(user, "482", words[1] + " :You're not channel operator");
 		return;
 	}
 

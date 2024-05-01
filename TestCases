@@ -1,3 +1,13 @@
+PASS
+
+
+NICK
+
+
+USER 
+
+
+
 JOIN
 
 JOIN #channel
@@ -47,3 +57,8 @@ TOPIC #channel topic, if channel exists and user is on channel and user is opera
 TOPIC #channel, if user is not on channel
 TOPIC #channel, if channel doesnt exist
 TOPIC #channel topic, if user is not operator
+
+
+
+PRIVMSG
+
