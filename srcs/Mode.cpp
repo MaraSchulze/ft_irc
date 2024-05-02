@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 15:05:13 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/27 19:35:52 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/01 21:41:14 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,9 +44,11 @@ void	Mode::execute() {
 						break;
 			case 'k' :	key(sign, _parameters[i]);
 						break;
-			case 'l' :	limit(sign, _parameters[i]);
+			case 'l' :	if (limit(sign, _parameters[i]) == false)
+							_modes[i][0] = '*';
 						break;	
-			case 'o' :	op(sign, _parameters[i]);
+			case 'o' :	if (op(sign, _parameters[i]) == false)
+							_modes[i][0] = '*';
 						break;
 			case 't' :	topic(sign, _parameters[i]);
 						break;
@@ -56,7 +58,8 @@ void	Mode::execute() {
 	// send server messages
 	flagStr = "";
 	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
-		flagStr += *it;
+		if ((*it)[0] != '*')
+			flagStr += *it;
 	}
 	members = _channel.getMembers();
 	_ircApp.sendPrefixMessageToMany(_user, members, "MODE", _channel.getName() + " " + flagStr);
@@ -118,7 +121,7 @@ void	Mode::key(char sign, std::string parameter) {
 		_channel.setModeK(false);
 }
 
-void	Mode::limit(char sign, std::string parameter) {
+bool	Mode::limit(char sign, std::string parameter) {
 	int	limit;
 
 	limit = converseIntoInt(parameter);
@@ -126,7 +129,7 @@ void	Mode::limit(char sign, std::string parameter) {
 	// check if limit is a positive integer
 	if (limit == -1) {
 		_ircApp.sendError(_user, "461", "MODE :Not enough parameters");
-		return;
+		return false;
 	}
 
 	if (sign == '+') {
@@ -135,9 +138,10 @@ void	Mode::limit(char sign, std::string parameter) {
 	}
 	else
 		_channel.setModeL(false);
+	return true;
 }
 
-void	Mode::op(char sign, std::string parameter) {
+bool	Mode::op(char sign, std::string parameter) {
 	int		userId;
 
 	userId = _ircApp.getUserIdByName(parameter);
@@ -145,13 +149,14 @@ void	Mode::op(char sign, std::string parameter) {
 	// check if target user is in channel
 	if (_channel.isMember(userId) == false) {
 		_ircApp.sendError(_user, "441", _user.getNick() + " " + _channel.getName() + " :They aren't on that channel");
-		return;
+		return false;
 	}
 
 	if (sign == '+')
 		_channel.addOperator(userId);
 	else
 		_channel.removeOperator(userId);
+	return true;
 }
 
 void	Mode::topic(char sign, std::string parameter) {

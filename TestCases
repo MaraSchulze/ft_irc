@@ -62,3 +62,12 @@ TOPIC #channel topic, if user is not operator
 
 PRIVMSG
 
+seems to work
+
+
+
+INVITE 
+
+INVITE nick channel, if user is on channel
+INVITE nick channel, if user is not on channel
+INVITE nick channel, if +i is set and user is not operator

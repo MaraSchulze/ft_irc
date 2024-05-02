@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/26 14:47:47 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/01 20:25:33 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,7 @@ class  IrcApplicationLayer {
 		User	*getUser(int id);
 		Channel	*getChannel(std::string name);
 		void	deleteUser(int id);
+		void	deleteChannel(std::string name);
 	public:
 		IrcApplicationLayer(std::string password);
 		~IrcApplicationLayer();

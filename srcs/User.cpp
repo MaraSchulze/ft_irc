@@ -6,11 +6,12 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 12:51:23 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/02 10:41:34 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "User.hpp"
+#include "helperFunctions.hpp"
 #include <algorithm>
 
 // debug
@@ -81,13 +82,13 @@ void	User::setRealName(std::string realName) {
 }
 
 void	User::addChannel(std::string channel) {
-	_channels.push_back(channel);
+	_channels.push_back(setToLower(channel));
 }
 
 void	User::removeChannel(std::string channel) {
 	std::vector<std::string>::iterator it;
 
-	it = std::find(_channels.begin(), _channels.end(), channel);
+	it = std::find(_channels.begin(), _channels.end(), setToLower(channel));
 	if (it != _channels.end())
 		_channels.erase(it);
 }

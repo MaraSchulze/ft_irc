@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:26:08 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 19:37:25 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/02 10:14:19 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,5 +22,7 @@ std::string	getSeveralWords(std::vector<std::string> words, int begin);
 bool	isCorrectNick(std::string nick);
 std::string	getTime();
 int	converseIntoInt(std::string str);
+bool	compareStrings(std::string a, std::string b);
+std::string	setToLower(std::string str);
 
 #endif

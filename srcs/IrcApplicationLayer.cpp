@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 17:14:42 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/02 11:16:12 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,8 +60,6 @@ void	IrcApplicationLayer::disconnect(int id) {
 
 	// remove user from _users map
 	deleteUser(id);
-
-	// here we have to notify Yalda that we want to disconnect the socket.
 }
 
 void	IrcApplicationLayer::receive(int id, std::string line) {
@@ -94,7 +92,7 @@ int		IrcApplicationLayer::getUserIdByName(std::string name) {
 	
 	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
 		current = (*it).second;
-		if (current->getNick() == name)
+		if (compareStrings(current->getNick(), name) == true)
 			return current->getId();
 	}
 	return -1;
@@ -109,7 +107,7 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 
 	command = firstWord(line);
 	for (index = 0; index < 13; index++) {
-		if (command == commands[index])
+		if (compareStrings(command, commands[index]) == true)
 			break;
 	}
 	switch (index) {
@@ -203,7 +201,7 @@ void	IrcApplicationLayer::handleNick(User& user, std::string line) {
 	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
 		currentUser = (*it).second;
 		currentNick = currentUser->getNick(); 
-		if (nick == currentNick) {
+		if (compareStrings(nick, currentNick) == true) {
 			sendError(user, "431", nick + " :Nickname is already in use");
 			return;
 		}
@@ -313,14 +311,18 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 
 		// if channel doesnt exist we create it and add user to operator list
 		if (channel == NULL) {
-			_channels[current] = new Channel(current);
-			_channels[current]->addOperator(user.getId());
+			_channels[setToLower(current)] = new Channel(current);
+			_channels[setToLower(current)]->addOperator(user.getId());
 			channel = getChannel(current);
 		}
 
+		// check if user is already on channel
+		if (channel->isMember(user.getId()))
+			return;
+
 		// check if channel is invite only
 		if (channel->getModeI() == true && channel->isInInviteList(user.getId()) == false) {
-			sendError(user, "473", current + " :Cannot join channel (+i)");
+			sendError(user, "473", channel->getName() + " :Cannot join channel (+i)");
 			continue;
 		}
 
@@ -330,27 +332,27 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 		else
 			key = "";
 		if (channel->getModeK() == true && channel->getKey() != key) {
-			sendError(user, "475", current + " :Cannot join channel (+k)");
+			sendError(user, "475", channel->getName() + " :Cannot join channel (+k)");
 			continue;	
 		}
 
 		// check limit if channel has user limit
 		if (channel->getModeL() == true && channel->memberSizeIsReached()) {
-			sendError(user, "471", current + " :Cannot join channel (+l)");
+			sendError(user, "471", channel->getName() + " :Cannot join channel (+l)");
 			continue;	
 		}
 
 		// add user to channel and add channel to user's channel list
 		channel->addMember(user.getId());
-		user.addChannel(current);
+		user.addChannel(channel->getName());
 
 		// send join message to all member of the channel
 		members = channel->getMembers();
-		sendPrefixMessageToMany(user, members, "JOIN", current);
+		sendPrefixMessageToMany(user, members, "JOIN", channel->getName());
 
 		// send RPL_TOPIC
 		if (channel->getTopic() != "")
-			sendServerMessage(user, "332", current + " :" + channel->getTopic());
+			sendServerMessage(user, "332", channel->getName() + " :" + channel->getTopic());
 
 		// send member list
 		members = channel->getMembers();
@@ -362,8 +364,8 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 			memberList += " ";
 		}
 		memberList = memberList.substr(0, memberList.size() - 1);
-		sendServerMessage(user, "353", " = " + current + " :" + memberList);
-		sendServerMessage(user, "366", current + " :End of NAMES list");
+		sendServerMessage(user, "353", "= " + channel->getName() + " :" + memberList);
+		sendServerMessage(user, "366", channel->getName() + " :End of NAMES list");
 	}
 }	
 
@@ -376,6 +378,12 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 	std::vector<int>			members;
 
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for correct syntax
 	if (words.size() < 2) {
@@ -396,25 +404,27 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 		current = *it;
 
 		// check if channel exists
-		if (_channels.find(current) == _channels.end()) {
+		if (_channels.find(setToLower(current)) == _channels.end()) {
 			sendError(user, "403", current + " :No such channel");
 			return;
 		}
 
 		// check if user is on channel
-		channel = _channels[current];
+		channel = _channels[setToLower(current)];
 		if (channel->isMember(user.getId()) == false) {
-			sendError(user, "442", current + " :You're not on that channel");
+			sendError(user, "442", channel->getName() + " :You're not on that channel");
 			return;
 		}
 		
 		// send response back to user
 		members = channel->getMembers();
-		sendPrefixMessageToMany(user, members, "PART", current + " :" + message);
+		sendPrefixMessageToMany(user, members, "PART", channel->getName() + " :" + message);
 
 		// remove user from channel._members list
 		channel->removeMember(user.getId());
-		user.removeChannel(current);
+		if (channel->channelIsEmpty())
+			deleteChannel(channel->getName());
+		user.removeChannel(channel->getName());
 	}
 }
 
@@ -427,6 +437,12 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	std::vector<int>::iterator	it;
 	
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for recipient
 	if (words.size() < 2) {
@@ -465,7 +481,7 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 
 	// check if member is on channel
 	if (channel->isMember(user.getId()) == false) {
-		sendError(user, "404", words[1] + " :Cannot send to channel");
+		sendError(user, "404", channel->getName() + " :Cannot send to channel");
 		return;
 	}
 
@@ -473,7 +489,7 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 	members = channel->getMembers();
 	it = std::find(members.begin(), members.end(), user.getId());
 	members.erase(it);
-	sendPrefixMessageToMany(user, members, "PRIVMSG", words[1] + " :" + message);
+	sendPrefixMessageToMany(user, members, "PRIVMSG", channel->getName() + " :" + message);
 }
 
 void	IrcApplicationLayer::handleKick(User& user, std::string line) {
@@ -486,6 +502,12 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 	int							member;
 
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for correct syntax
 	if (words.size() < 3) {
@@ -524,13 +546,13 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 
 		// check if user is on channel
 		if (channel->isMember(user.getId()) == false) {
-			sendError(user, "442", channelNames[i] + " :You're not on that channel");
+			sendError(user, "442", channel->getName() + " :You're not on that channel");
 			return;
 		}
 
 		// check for operator rights
 		if (channel->isOperator(user.getId()) == false) {
-			sendError(user, "482", channelNames[i] + " :You're not channel operator");
+			sendError(user, "482", channel->getName() + " :You're not channel operator");
 			return;
 		}
 		
@@ -553,16 +575,18 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 
 			// check if to=be-kicked-out-user is on channel
 			if (channel->isMember(member) == false) {
-				sendError(user, "441", *it + " " + channelNames[i] + ":They aren't on that channel");
+				sendError(user, "441", *it + " " + channel->getName() + ":They aren't on that channel");
 				continue;
 			}
 				
 			// send message to all members
-			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channelNames[i] + " " + *it + " :" + message);
+			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channel->getName() + " " + *it + " :" + message);
 			
 			// remove recipient from channel
 			channel->removeMember(member);
-			_users[member]->removeChannel(channelNames[i]);	
+			if (channel->channelIsEmpty())
+				deleteChannel(channel->getName());
+			_users[member]->removeChannel(channel->getName());	
 		}
 	}
 }
@@ -573,6 +597,12 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 	int							invitee;
 
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for correct syntax
 	if (words.size() < 3) {
@@ -592,31 +622,31 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 
 	// check if channel exists
 	if (channel == NULL) {
-		sendError(user, "403", words[2] + " :No such channel");
+		sendError(user, "403", channel->getName() + " :No such channel");
 		return;
 	}
 
 	// check if invitee is already in channel
 	if (channel->isMember(invitee) == true) {
-		sendError(user, "443", words[1] = " " + words[2] + " :is already on channel");
+		sendError(user, "443", words[1] + " " + channel->getName() + " :is already on channel");
 		return;
 	}
 
 	// check if user is member in channel
 	if (channel->isMember(user.getId()) == false) {
-		sendError(user, "442", words[2] + " :You're not on that channel");
+		sendError(user, "442", channel->getName() + " :You're not on that channel");
 		return;
 	}
 
 	// check if channel is invite-only and user is operator
 	if (channel->getModeI() == true && channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", words[2] + " :You're not channel operator");
+		sendError(user, "482", channel->getName() + " :You're not channel operator");
 		return;
 	}
 
 	// send sender and invitee a server response
-	sendServerMessage(user, "341", words[2] + " " + words[1]);
-	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + " " + words[2]);
+	sendServerMessage(user, "341", words[1] + " " + channel->getName());
+	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + " " + channel->getName());
 }
 
 void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
@@ -625,6 +655,12 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 	std::vector<int>			members;
 
 	words = splitString(line, " ");
+
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
 
 	// check for correct syntax
 	if (words.size() < 2) {
@@ -642,7 +678,7 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 	
 	// check if user is on the channel
 	if (channel->isMember(user.getId()) == false) {
-		sendError(user, "442", words[1] + " :You're not on that channel");
+		sendError(user, "442", channel->getName() + " :You're not on that channel");
 		return;
 	}
 
@@ -650,16 +686,16 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 	if (words.size() < 3) {
 		// if topic is set, we return topic
 		if (channel->getTopic() != "")
-			sendServerMessage(user, "332", words[1] + " :" + channel->getTopic());
+			sendServerMessage(user, "332", channel->getName() + " :" + channel->getTopic());
 		// else we return RPL_NOTOPIC
 		else
-			sendServerMessage(user, "331", words[1] + " :No topic is set");
+			sendServerMessage(user, "331", channel->getName() + " :No topic is set");
 		return;
 	}
 
 	// check if channel has topic mode set and user is operator
 	if (channel->getModeT() == true && channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", words[1] + " :You're not channel operator");
+		sendError(user, "482", channel->getName() + " :You're not channel operator");
 		return;
 	}
 
@@ -668,7 +704,7 @@ void	IrcApplicationLayer::handleTopic(User& user, std::string line) {
 
 	// inform all members of topic change
 	members = channel->getMembers();
-	sendPrefixMessageToMany(user, members, "TOPIC", words[1] + " :" + channel->getTopic());
+	sendPrefixMessageToMany(user, members, "TOPIC", channel->getName() + " :" + channel->getTopic());
 }
 
 void	IrcApplicationLayer::handleMode(User& user, std::string line) {
@@ -680,8 +716,14 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 
 	words = splitString(line, " ");
 
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
+
 	// check for correct syntax
-	if (words.size() < 3) {
+	if (words.size() < 2) {
 		sendError(user, "461", words[0] + " :Not enough parameters");
 		return;
 	}
@@ -690,19 +732,25 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 
 	// check if channel exists
 	if (channel == NULL) {
-		sendError(user, "403", words[2] + " :No such channel");
+		sendError(user, "403", channel->getName() + " :No such channel");
+		return;
+	}
+
+	// check if no mode flags are set, that is if the client queries the mode flags
+	if (words.size() < 3) {
+		sendServerMessage(user, "324", channel->getName() + " " + channel->getModeString());
 		return;
 	}
 
 	// check if user is on the channel
 	if (channel->isMember(user.getId()) == false) {
-		sendError(user, "442", words[1] + " :You're not on that channel");
+		sendError(user, "442", channel->getName() + " :You're not on that channel");
 		return;
 	}
 
 	// check if user is operator
 	if (channel->isOperator(user.getId()) == false) {
-		sendError(user, "482", words[2] + " :You're not channel operator");
+		sendError(user, "482", channel->getName() + " :You're not channel operator");
 		return;
 	}
 
@@ -718,10 +766,15 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	std::vector<std::string>	channelNames;
 	Channel						*channel;
 	std::vector<int>			members;
-	int							id;
 
 	words = splitString(line, " ");
 
+	// check if user is registered
+	if (user.checkAuthStatus() == false) {
+		sendError(user, "451", ":You have not registered");
+		return;
+	}
+	
 	// get message if there is one
 	if (words.size() >= 2)
 		message = getSeveralWords(words, 1);
@@ -732,8 +785,11 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	// delete user as member from all channels
 	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
 		channel = getChannel(*it);
-		if (channel != NULL)
+		if (channel != NULL) {
 			channel->removeMember(user.getId());
+			if (channel->channelIsEmpty())
+				deleteChannel(*it);
+		}
 	}
 
 	// get all recipients
@@ -749,10 +805,8 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	// send the quit message to all members of all channels the user was in
 	sendPrefixMessageToMany(user, recipients, "QUIT", message);
 
-	id = user.getId();
-
-	// call disconnect
-	disconnect(id);
+	// inform socket layer to disconnect
+	std::cout << "[debug] here we disconnect " << user.getId() << std::endl;
 }
 
 void	IrcApplicationLayer::handleCap(User& user, std::string line) {
@@ -822,8 +876,8 @@ User	*IrcApplicationLayer::getUser(int id) {
 }
 
 Channel	*IrcApplicationLayer::getChannel(std::string name) {
-	if (_channels.find(name) != _channels.end())
-		return _channels[name];
+	if (_channels.find(setToLower(name)) != _channels.end())
+		return _channels[setToLower(name)];
 	else
 		return NULL;
 }
@@ -847,4 +901,10 @@ void	IrcApplicationLayer::deleteUser(int id) {
 		delete user;
 		_users.erase(id);
 	}
+}
+
+void	IrcApplicationLayer::deleteChannel(std::string name) {
+	name = setToLower(name);
+	if (_channels.find(name) != _channels.end())
+		_channels.erase(name);
 }

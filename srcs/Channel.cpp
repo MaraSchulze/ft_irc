@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:40:25 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/27 20:42:50 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/01 21:14:41 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,6 +107,22 @@ bool	Channel::getModeT() {
 	return _modeT;
 }
 
+std::string	Channel::getModeString() {
+	std::string	modeString;
+
+	if (getModeI() == true)
+		modeString += "i";
+	if (getModeK() == true)
+		modeString += "k";	
+	if (getModeL() == true)
+		modeString += "l";	
+	if (getModeT() == true)
+		modeString += "t";
+	if (modeString.size() > 0)
+		modeString = "+" + modeString;
+	return modeString;		
+}
+
 std::string	Channel::getKey() {
 	return _key;
 }
@@ -125,6 +141,10 @@ int		Channel::getUserLimit() {
 
 int		Channel::memberSizeIsReached() {
 	return _currentMemberSize >= _userLimit;
+}
+
+bool	Channel::channelIsEmpty() {
+	return _currentMemberSize == 0;
 }
 
 std::string	Channel::getTopic() {

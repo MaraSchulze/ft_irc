@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 22:25:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/26 14:41:59 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/02 10:15:15 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,14 @@
 #include <algorithm>
 
 std::string	firstWord(std::string line) {
-	size_t position;
+	size_t 		position;
+	std::string	result;
 
 	position = line.find(" ");
 	if (position == std::string::npos)
 		position = line.size();
-	return line.substr(0, position);
+	result = line.substr(0, position);
+	return result;
 }
 
 std::vector<std::string> splitString(const std::string &str, const std::string& separator) {
@@ -87,13 +89,27 @@ int	converseIntoInt(std::string str) {
 	
 	for (size_t i = 0; i < str.size(); i++) {
 		if (isdigit(str[i]) == false)
-			return false;
+			return -1;
 	}
 	limit = 0;
 	for (int i = 0; i < std::min((int) (str.size()), 10); i++) {
 		limit = 10 * limit + (str[i] - '0');
 	}
 	if (limit < 1 || limit > 2147483647)
-		return false;
-	return true;
+		return -1;
+	return limit;
+}
+
+bool	compareStrings(std::string a, std::string b) {
+	for (size_t i = 0; i < a.size(); i++)
+		a[i] = tolower(a[i]);
+	for (size_t i = 0; i < b.size(); i++)
+		b[i] = tolower(b[i]);
+	return a == b;
+}
+
+std::string	setToLower(std::string str) {
+	for (size_t i = 0; i < str.size(); i++)
+		str[i] = tolower(str[i]);
+	return str;
 }
