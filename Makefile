@@ -21,7 +21,7 @@ SRCDIR		:= srcs
 OBJDIR		:= objs
 
 SRCS 	:= main.cpp IrcApplicationLayer.cpp User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp \
-			testApplicationLayer.cpp 
+			testApplicationLayer.cpp Client.cpp Server.cpp
 
 SRCS_WITH_DIRPREFIX	:= $(addprefix $(SRCDIR)/, $(SRCS))
 
