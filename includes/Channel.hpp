@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:35:10 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 21:09:12 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/09 21:34:16 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,34 +33,34 @@ class  Channel {
 	public:
 		Channel(std::string name);
 		~Channel();
-		std::string getName();
-		void	addMember(int id);
-		void	removeMember(int id);
-		bool	isMember(int id);
-		std::vector<int>&	getMembers();
-		void	addOperator(int id);
-		void	removeOperator(int id);
-		bool	isOperator(int id);
-		void	setModeI(bool i);
-		bool	getModeI();
-		void	setModeK(bool k);
-		bool	getModeK();
-		void	setModeL(bool l);
-		bool	getModeL();
-		void	setModeT(bool t);
-		bool	getModeT();
-		std::string	getModeString();
-		std::string	getKey();
-		void	setKey(std::string key);
-		void	setUserLimit(int userLimit);
-		int		getUserLimit();
-		int		memberSizeIsReached();
-		bool	channelIsEmpty();
-		std::string	getTopic();
-		void	setTopic(std::string topic);
-		void	addToInviteList(int id);
-		void	removeFromInviteList(int id);
-		bool	isInInviteList(int id);
+		std::string 		getName();
+		void				addMember(int id);
+		void				removeMember(int id);
+		bool				isMember(int id);
+		std::vector<int>	getMembers();
+		void				addOperator(int id);
+		void				removeOperator(int id);
+		bool				isOperator(int id);
+		void				setModeI(bool i);
+		bool				getModeI();
+		void				setModeK(bool k);
+		bool				getModeK();
+		void				setModeL(bool l);
+		bool				getModeL();
+		void				setModeT(bool t);
+		bool				getModeT();
+		std::string			getModeString();
+		std::string			getKey();
+		void				setKey(std::string key);
+		void				setUserLimit(int userLimit);
+		int					getUserLimit();
+		int					memberSizeIsReached();
+		bool				channelIsEmpty();
+		std::string			getTopic();
+		void				setTopic(std::string topic);
+		void				addToInviteList(int id);
+		void				removeFromInviteList(int id);
+		bool				isInInviteList(int id);
 };
 
 #endif

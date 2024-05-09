@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/02 10:41:34 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/09 19:53:31 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,10 +75,6 @@ void	User::setUser(std::string userName) {
 
 std::string	User::getUser() {
 	return _user;
-}
-
-void	User::setRealName(std::string realName) {
-	_realName = realName;
 }
 
 void	User::addChannel(std::string channel) {

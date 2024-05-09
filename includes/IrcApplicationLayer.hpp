@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 20:25:33 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/09 21:48:29 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,12 +48,14 @@ class  IrcApplicationLayer {
 		void	handlePing(User& user, std::string line);
 		void	sendServerMessage(User& user, std::string code, std::string text);
 		void	sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text);
-		void	send(int id, std::string message);
 		void	sendWelcome(User& user);
+		void	send(int id, std::string message);
 		User	*getUser(int id);
 		Channel	*getChannel(std::string name);
+		void	setChannel(std::string name, Channel *channel);
 		void	deleteUser(int id);
 		void	deleteChannel(std::string name);
+		void	deleteMemberFromChannel(Channel *channel, int id);
 	public:
 		IrcApplicationLayer(std::string password);
 		~IrcApplicationLayer();

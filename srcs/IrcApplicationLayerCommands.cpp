@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   IrcApplicationLayer.cpp                            :+:      :+:    :+:   */
+/*   IrcApplicationLayerCommands.cpp                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/02 11:16:12 by marschul         ###   ########.fr       */
+/*   Created: 2024/05/09 18:29:02 by marschul          #+#    #+#             */
+/*   Updated: 2024/05/09 21:55:16 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,89 +16,6 @@
 #include <iostream>
 #include <arpa/inet.h>
 #include <algorithm>
-
-IrcApplicationLayer::IrcApplicationLayer(std::string password) : _password(password), _serverName(SERVERNAME) {
-	_serverCreationTime = getTime();
-}
-
-IrcApplicationLayer::~IrcApplicationLayer() {
-	// delete all User and Channel objects that we have newed
-	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++)
-		delete (*it).second;
-	for (std::map<std::string, Channel*>::iterator it = _channels.begin(); it != _channels.end(); it++)
-		delete (*it).second;
-}
-
-void	IrcApplicationLayer::connect(int id, struct sockaddr_in address) {
-	User	*newUser;
-
-	// create User object
-	newUser = new User(id);
-
-	// check if id is still in use, then disconnect id
-	if (_users.find(id) != _users.end()) {
-		disconnect(id);
-	}
-
-	// add to _users map
-	_users[id] = newUser;
-
-	// set host name
-	newUser->setHost(inet_ntoa(address.sin_addr));
-}
-
-void	IrcApplicationLayer::disconnect(int id) {
-	User						*user;
-
-	user = getUser(id);
-
-	if (user == NULL)
-		return;
-
-	// send disconnect string to client
-	send(id, "ERROR :Closing Link: " + user->getNick() + "[" + user->getHost() + "]");
-
-	// remove user from _users map
-	deleteUser(id);
-}
-
-void	IrcApplicationLayer::receive(int id, std::string line) {
-	User						*user;
-	std::vector<std::string>	commandLines;
-
-	// debug
-	std::cout << "[debug received] " << line << std::endl;
-
-	user = getUser(id);
-	if (user != NULL) {
-		// split into commands
-		commandLines = splitString(line, "\r\n");
-
-		// dispatch commands
-		for (std::vector<std::string>::iterator it = commandLines.begin(); it < commandLines.end(); it++) {
-			dispatchCommand(*user, *it);
-		}
-	}
-	else
-		std::cout << "Error: Received a message from a client that doesn't exist." << std::endl;
-}	
-
-SendQueue&	IrcApplicationLayer::getSendQueue() {
-	return _sendQueue;
-}
-
-int		IrcApplicationLayer::getUserIdByName(std::string name) {
-	User	*current;
-	
-	for (std::map<int, User*>::iterator it = _users.begin(); it != _users.end(); it++) {
-		current = (*it).second;
-		if (compareStrings(current->getNick(), name) == true)
-			return current->getId();
-	}
-	return -1;
-}
-
-//******************** private methods **********************************
 
 void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 	std::string	command;
@@ -243,8 +160,6 @@ void	IrcApplicationLayer::handleUser(User& user, std::string line) {
 
 	// set user and real name
 	user.setUser(words[1]);
-	realName = getSeveralWords(words, 4);
-	user.setRealName(realName);
 
 	// set auth status user
 	user.setAuthStatusUser();
@@ -311,9 +226,10 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 
 		// if channel doesnt exist we create it and add user to operator list
 		if (channel == NULL) {
-			_channels[setToLower(current)] = new Channel(current);
-			_channels[setToLower(current)]->addOperator(user.getId());
+			setChannel(current, new Channel(current));
 			channel = getChannel(current);
+			channel->addOperator(user.getId());
+
 		}
 
 		// check if user is already on channel
@@ -403,14 +319,15 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 		// set current to current channel name
 		current = *it;
 
+		channel = getChannel(current);
+
 		// check if channel exists
-		if (_channels.find(setToLower(current)) == _channels.end()) {
+		if (channel == NULL) {
 			sendError(user, "403", current + " :No such channel");
 			return;
 		}
 
 		// check if user is on channel
-		channel = _channels[setToLower(current)];
 		if (channel->isMember(user.getId()) == false) {
 			sendError(user, "442", channel->getName() + " :You're not on that channel");
 			return;
@@ -421,10 +338,7 @@ void	IrcApplicationLayer::handlePart(User& user, std::string line) {
 		sendPrefixMessageToMany(user, members, "PART", channel->getName() + " :" + message);
 
 		// remove user from channel._members list
-		channel->removeMember(user.getId());
-		if (channel->channelIsEmpty())
-			deleteChannel(channel->getName());
-		user.removeChannel(channel->getName());
+		deleteMemberFromChannel(channel, user.getId());
 	}
 }
 
@@ -583,10 +497,7 @@ void	IrcApplicationLayer::handleKick(User& user, std::string line) {
 			sendPrefixMessageToMany(user, channel->getMembers(), "KICK", channel->getName() + " " + *it + " :" + message);
 			
 			// remove recipient from channel
-			channel->removeMember(member);
-			if (channel->channelIsEmpty())
-				deleteChannel(channel->getName());
-			_users[member]->removeChannel(channel->getName());	
+			deleteMemberFromChannel(channel, member);
 		}
 	}
 }
@@ -778,6 +689,8 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	// get message if there is one
 	if (words.size() >= 2)
 		message = getSeveralWords(words, 1);
+	else
+		message = "";
 
 	// get channel names
 	channelNames = user.getChannels();
@@ -786,9 +699,7 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	for (std::vector<std::string>::iterator it = channelNames.begin(); it < channelNames.end(); it++) {
 		channel = getChannel(*it);
 		if (channel != NULL) {
-			channel->removeMember(user.getId());
-			if (channel->channelIsEmpty())
-				deleteChannel(*it);
+			deleteMemberFromChannel(channel, user.getId());
 		}
 	}
 
@@ -805,8 +716,8 @@ void	IrcApplicationLayer::handleQuit(User& user, std::string line) {
 	// send the quit message to all members of all channels the user was in
 	sendPrefixMessageToMany(user, recipients, "QUIT", message);
 
-	// inform socket layer to disconnect
-	std::cout << "[debug] here we disconnect " << user.getId() << std::endl;
+	// disconnect
+	disconnect(user.getId());
 }
 
 void	IrcApplicationLayer::handleCap(User& user, std::string line) {
@@ -825,86 +736,4 @@ void	IrcApplicationLayer::handlePing(User& user, std::string line) {
 	words = splitString(line, " ");
 
 	send(user.getId(), std::string("PONG") + words[1]);
-}
-
-// ******************* send functions ******************
-
-void	IrcApplicationLayer::sendError(User& user, std::string errorcode, std::string errorMessage) {
-	std::string message;
-
-	message = ":" + _serverName + " " + errorcode + " " + user.getNick() + " " + errorMessage;
-	send(user.getId(), message);
-}
-
-void	IrcApplicationLayer::sendServerMessage(User& user, std::string code, std::string text) {
-	std::string message;
-
-	message = ":" + _serverName + " " + code + " " + user.getNick() + " " + text;
-	send(user.getId(), message);
-}
-
-void	IrcApplicationLayer::sendPrefixMessage(User& sender, User& receiver, std::string command, std::string text) {
-	std::string message;
-
-	message = ":" + sender.getNick() + "!" + sender.getUser() + "@" + sender.getHost() + " " + command + " " + text;
-	send(receiver.getId(), message);
-}
-
-void	IrcApplicationLayer::sendWelcome(User& user) {
-	sendServerMessage(user, "001", "Welcome to the Internet Relay Network " + user.getNick() + "!" + user.getUser() + "@" + user.getHost());
-	sendServerMessage(user, "002", "Your host is " + _serverName + ", running version 1.0.0");
-	sendServerMessage(user, "003", "This server was created " + _serverCreationTime);
-	sendServerMessage(user, "004", _serverName + " ircserv-1.0.0" + " oiws " + "obtkmlvsni");
-}
-
-void	IrcApplicationLayer::send(int id, std::string message) {
-	_sendQueue.push(id, message + '\n');
-}
-
-void	IrcApplicationLayer::sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text) {
-	for (std::vector<int>::iterator it = ids.begin(); it < ids.end(); it++)
-		sendPrefixMessage(user, *_users[*it], command, text);
-}
-
-// ********* helper functions **********************
-
-User	*IrcApplicationLayer::getUser(int id) {
-	if (_users.find(id) != _users.end())
-		return _users[id];
-	else
-		return NULL;
-}
-
-Channel	*IrcApplicationLayer::getChannel(std::string name) {
-	if (_channels.find(setToLower(name)) != _channels.end())
-		return _channels[setToLower(name)];
-	else
-		return NULL;
-}
-
-void	IrcApplicationLayer::deleteUser(int id) {
-	User						*user;
-	Channel						*channel;
-	std::vector<std::string>	channels;
-
-	user = getUser(id);
-	if (user != NULL) {
-		// remove user from all _channels
-		channels = user->getChannels();
-		for (std::vector<std::string>::iterator it = channels.begin(); it < channels.end(); it++) {
-			channel = getChannel(*it);
-			if (channel != NULL)
-				channel->removeMember(id);
-		}
-
-		// delete user from _users map
-		delete user;
-		_users.erase(id);
-	}
-}
-
-void	IrcApplicationLayer::deleteChannel(std::string name) {
-	name = setToLower(name);
-	if (_channels.find(name) != _channels.end())
-		_channels.erase(name);
 }

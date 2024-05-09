@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:31:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/24 12:36:16 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/09 19:53:18 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ class  User {
 		std::string					_nick;
 		std::string					_user;
 		std::string					_host;
-		std::string					_realName;
 		std::vector<std::string>	_channels;
 	public:
 		User(int id);
@@ -43,7 +42,6 @@ class  User {
 		std::string					getNick();
 		void						setUser(std::string userName);
 		std::string					getUser();
-		void						setRealName(std::string realName);
 		void						addChannel(std::string channel);
 		void						removeChannel(std::string channel);
 		std::vector<std::string>&	getChannels();

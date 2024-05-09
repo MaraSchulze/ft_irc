@@ -77,12 +77,12 @@ void Server::disconnect() {
 }
 
 
-/*int main() {
+int main() {
     // Create server instance
     Server server(6667);
 
     // Start server
-    if (!server.start()) {
+    if (!server.startListening()) {
         std::cerr << "Failed to start server" << std::endl;
         return 1;
     }
@@ -93,8 +93,7 @@ void Server::disconnect() {
     }
 
     // Stop server
-    server.stop();
+    server.disconnect();
 
     return 0;
 }
-*/
