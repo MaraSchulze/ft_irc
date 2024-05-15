@@ -1,4 +1,3 @@
-
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
@@ -17,6 +16,7 @@ public:
     bool startListening();
     bool acceptClient();
     bool receiveMessage(std::string& receivedMessage);
+    bool sendMessage(const std::string& message);
     void disconnect();
 
 private:
@@ -26,4 +26,4 @@ private:
     struct sockaddr_in _address;
 };
 
-#endif 
+#endif
