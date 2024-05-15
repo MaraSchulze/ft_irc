@@ -1,6 +1,5 @@
-
-#ifndef CLIENT_HPP
-#define CLIENT_HPP
+#ifndef SOCKET_HPP
+#define SOCKET_HPP
 
 #include <string>
 #include <sys/socket.h>
@@ -8,22 +7,22 @@
 #include <unistd.h>
 #include <cstring>
 #include <arpa/inet.h>
-#include <iostream>
 
-class Client {
+class SocketLayer {
 public:
-    Client(const char* serverIP, int port);
-    ~Client();
+    SocketLayer();
+    ~SocketLayer();
 
-    bool connectToServer();
+    bool connectToServer(const std::string& serverIP, int port);
+    bool startServer(int port);
+    bool acceptClient();
     bool sendMessage(const std::string& message);
     bool receiveMessage(std::string& receivedMessage);
     void disconnect();
 
 private:
-    const char* _serverIP;
-    int _port;
     int _socket;
+    int _clientSocket; 
     struct sockaddr_in _address;
 };
 

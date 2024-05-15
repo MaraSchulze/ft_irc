@@ -1,8 +1,10 @@
-
 #include "Server.hpp"
+
 Server::Server(int port) : _port(port), _listener(0), _clientSocket(0) {}
 
-Server::~Server() {}
+Server::~Server() {
+    disconnect();
+}
 
 bool Server::startListening() {
     // Create socket
@@ -52,7 +54,7 @@ bool Server::acceptClient() {
 bool Server::receiveMessage(std::string& receivedMessage) {
     // Receive message from client
     char buffer[1024];
-    ssize_t bytesRead = recv(_clientSocket, buffer, sizeof(buffer), 0);
+    ssize_t bytesRead = recv(_clientSocket, buffer, sizeof(buffer) - 1, 0);
     if (bytesRead <= 0) {
         if (bytesRead == 0) {
             std::cout << "Client disconnected" << std::endl;
@@ -70,30 +72,14 @@ bool Server::receiveMessage(std::string& receivedMessage) {
 
 void Server::disconnect() {
     // Close client socket
-    close(_clientSocket);
+    if (_clientSocket > 0) {
+        close(_clientSocket);
+        _clientSocket = 0;
+    }
     // Close listener socket
-    close(_listener);
+    if (_listener > 0) {
+        close(_listener);
+        _listener = 0;
+    }
     std::cout << "Server disconnected" << std::endl;
-}
-
-
-int main() {
-    // Create server instance
-    Server server(6667);
-
-    // Start server
-    if (!server.startListening()) {
-        std::cerr << "Failed to start server" << std::endl;
-        return 1;
-    }
-
-    // Accept client connections
-    while (true) {
-        server.acceptClient();
-    }
-
-    // Stop server
-    server.disconnect();
-
-    return 0;
 }

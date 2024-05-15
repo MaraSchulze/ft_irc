@@ -22,7 +22,7 @@ OBJDIR		:= objs
 
 SRCS 	:= main.cpp IrcApplicationLayerPublic.cpp IrcApplicationLayerCommands.cpp \
 			IrcApplicationLayerSendFunctions.cpp IrcApplicationLayerHelperFunctions.cpp\
-			User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp
+			User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp socket.cpp
 
 SRCS_WITH_DIRPREFIX	:= $(addprefix $(SRCDIR)/, $(SRCS))
 
