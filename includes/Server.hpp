@@ -15,7 +15,7 @@
 
 class Server {
 public:
-    Server(int port, SendQueue& sendQueue);
+    Server(int port, IrcApplicationLayer& ircApp);
     ~Server();
 
     bool startListening();
@@ -29,8 +29,8 @@ private:
     int _port;
     int _listener;
     std::vector<pollfd> _clients;
-    SendQueue& _sendQueue;
-    std::vector<User> _users;
+    IrcApplicationLayer& _ircApp;
+	SendQueue& _sendQueue;
 };
 
 #endif 

@@ -13,7 +13,7 @@ command has certain syntax
 
 ----------------
 
-nc -v irc.uni-erlangen.de 6667
+nc -vc irc.uni-erlangen.de 6667
 
 ---------------
 
@@ -28,3 +28,7 @@ channel must be deleted, if there is noone in it anymore.	 kinda check
 commands, channel and nicks must be case insensitive	check
 
 how is it with commands when not registered?	check
+
+----------------
+
+We need some mechanism to set back a client connection initiated from the ircApplicationLayer.

@@ -1,6 +1,8 @@
 #include "Server.hpp"
 
-Server::Server(int port, SendQueue& sendQueue) : _port(port), _listener(0), _sendQueue(sendQueue) {}
+Server::Server(int port, IrcApplicationLayer& ircApp) : _port(port), _listener(0), _ircApp(ircApp), _sendQueue(_ircApp.getSendQueue()) {
+
+}
 
 Server::~Server() {
     disconnect();
@@ -51,7 +53,8 @@ bool Server::acceptClient() {
     pfd.fd = clientSocket;
     pfd.events = POLLIN;
     _clients.push_back(pfd);
-    _users.push_back(User(clientSocket));
+
+	_ircApp.connect(clientSocket, clientAddr);
 
     std::cout << "Client connected" << std::endl;
     return true;
@@ -96,6 +99,8 @@ void Server::disconnect() {
 }
 
 void Server::run() {
+	startListening();
+
     while (true) {
         int pollCount = poll(&_clients[0], _clients.size(), -1);
         if (pollCount == -1) {
@@ -108,19 +113,20 @@ void Server::run() {
                 if (_clients[i].fd == _listener) {
                     acceptClient();
                 } else {
+					int	clientSocket;
                     std::string message;
                     if (!receiveMessage(_clients[i].fd, message)) {
+						_ircApp.disconnect(_clients[i].fd);
                         close(_clients[i].fd);
                         _clients.erase(_clients.begin() + i);
-                        _users.erase(_users.begin() + i - 1); // Adjust for _listener
                         --i;
                     } else {
-                        IrcApplicationLayer ircApp("server");
-                        ircApp.handleMessage(_users[i - 1], message); // Adjust for _listener
-
+						_ircApp.receive(_clients[i].fd, message);
                         while (!_sendQueue.empty()) {
-                            SendQueueItem item = _sendQueue.pop();
-                            sendMessage(item.clientSocket, item.message);
+							clientSocket = _sendQueue.getNextSender();
+							message = _sendQueue.getNextMessage();
+							_sendQueue.pop();
+                            sendMessage(clientSocket, message);
                         }
                     }
                 }
