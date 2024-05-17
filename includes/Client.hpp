@@ -23,7 +23,6 @@ private:
     const char* _serverIP;
     int _port;
     int _socket;
-    struct sockaddr_in _address;
 };
 
-#endif 
+#endif
