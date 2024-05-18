@@ -9,6 +9,8 @@
 #include <cstring>
 #include <iostream>
 #include <poll.h>
+#include <fcntl.h>
+#include <map>
 #include "SendQueue.hpp"
 #include "User.hpp"
 #include "IrcApplicationLayer.hpp"
@@ -30,6 +32,7 @@ private:
     int _listener;
     std::vector<pollfd> _clients;
     SendQueue& _sendQueue;
+    std::map<int, std::string> _recvBuffers; // Buffers for accumulating received data per client
     std::vector<User> _users;
 };
 

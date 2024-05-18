@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <iostream>
 
 class Client {
@@ -23,6 +24,7 @@ private:
     const char* _serverIP;
     int _port;
     int _socket;
+    std::string _recvBuffer; // Buffer for accumulating received data
 };
 
-#endif
+#endif 

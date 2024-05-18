@@ -13,6 +13,9 @@ bool Client::connectToServer() {
         return false;
     }
 
+    int flags = fcntl(_socket, F_GETFL, 0);
+    fcntl(_socket, F_SETFL, flags | O_NONBLOCK);
+
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
@@ -23,8 +26,10 @@ bool Client::connectToServer() {
     }
 
     if (connect(_socket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("connect");
-        return false;
+        if (errno != EINPROGRESS) {
+            perror("connect");
+            return false;
+        }
     }
 
     std::cout << "Connected to server" << std::endl;
@@ -33,10 +38,20 @@ bool Client::connectToServer() {
 
 bool Client::sendMessage(const std::string& message) {
     std::string formattedMessage = message + "\r\n";
-    ssize_t sent = send(_socket, formattedMessage.c_str(), formattedMessage.length(), 0);
-    if (sent == -1) {
-        perror("send");
-        return false;
+    ssize_t totalSent = 0;
+    ssize_t messageLength = formattedMessage.length();
+
+    while (totalSent < messageLength) {
+        ssize_t sent = send(_socket, formattedMessage.c_str() + totalSent, messageLength - totalSent, 0);
+        if (sent == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue; // Try again
+            } else {
+                perror("send");
+                return false;
+            }
+        }
+        totalSent += sent;
     }
 
     std::cout << "Message sent to server: " << message << std::endl;
@@ -45,30 +60,32 @@ bool Client::sendMessage(const std::string& message) {
 
 bool Client::receiveMessage(std::string& receivedMessage) {
     char buffer[1024];
-    std::string tempMessage;
     while (true) {
         ssize_t bytesRead = recv(_socket, buffer, sizeof(buffer) - 1, 0);
         if (bytesRead <= 0) {
             if (bytesRead == 0) {
                 std::cout << "Server disconnected" << std::endl;
+                return false;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break; // No more data to read
             } else {
                 perror("recv");
+                return false;
             }
-            return false;
         }
 
         buffer[bytesRead] = '\0';
-        tempMessage += buffer;
+        _recvBuffer += buffer;
 
-        size_t pos = tempMessage.find("\r\n");
-        if (pos != std::string::npos) {
-            receivedMessage = tempMessage.substr(0, pos);
-            tempMessage.erase(0, pos + 2);
-            break;
+        size_t pos;
+        while ((pos = _recvBuffer.find("\r\n")) != std::string::npos) {
+            receivedMessage = _recvBuffer.substr(0, pos);
+            _recvBuffer.erase(0, pos + 2);
+            std::cout << "Received message from server: " << receivedMessage << std::endl;
+            return true;
         }
     }
-    std::cout << "Received message from server: " << receivedMessage << std::endl;
-    return true;
+    return false;
 }
 
 void Client::disconnect() {

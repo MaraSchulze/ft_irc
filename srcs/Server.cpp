@@ -13,6 +13,9 @@ bool Server::startListening() {
         return false;
     }
 
+    int flags = fcntl(_listener, F_GETFL, 0);
+    fcntl(_listener, F_SETFL, flags | O_NONBLOCK);
+
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
@@ -47,11 +50,16 @@ bool Server::acceptClient() {
         return false;
     }
 
+    int flags = fcntl(clientSocket, F_GETFL, 0);
+    fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
+
     struct pollfd pfd;
     pfd.fd = clientSocket;
     pfd.events = POLLIN;
     _clients.push_back(pfd);
     _users.push_back(User(clientSocket));
+
+    _recvBuffers[clientSocket] = "";
 
     std::cout << "Client connected" << std::endl;
     return true;
@@ -59,28 +67,50 @@ bool Server::acceptClient() {
 
 bool Server::receiveMessage(int clientSocket, std::string& receivedMessage) {
     char buffer[1024];
-    ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-    if (bytesRead <= 0) {
-        if (bytesRead == 0) {
-            std::cout << "Client disconnected" << std::endl;
-        } else {
-            perror("recv");
+    while (true) {
+        ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesRead <= 0) {
+            if (bytesRead == 0) {
+                std::cout << "Client disconnected" << std::endl;
+                return false;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break; // No more data to read
+            } else {
+                perror("recv");
+                return false;
+            }
         }
-        return false;
-    }
 
-    buffer[bytesRead] = '\0';
-    receivedMessage = buffer;
-    std::cout << "Received message from client: " << receivedMessage << std::endl;
-    return true;
+        buffer[bytesRead] = '\0';
+        _recvBuffers[clientSocket] += buffer;
+
+        size_t pos;
+        while ((pos = _recvBuffers[clientSocket].find("\r\n")) != std::string::npos) {
+            receivedMessage = _recvBuffers[clientSocket].substr(0, pos);
+            _recvBuffers[clientSocket].erase(0, pos + 2);
+            std::cout << "Received complete message from client: " << receivedMessage << std::endl;
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Server::sendMessage(int clientSocket, const std::string& message) {
     std::string formattedMessage = message + "\r\n";
-    ssize_t sent = send(clientSocket, formattedMessage.c_str(), formattedMessage.length(), 0);
-    if (sent == -1) {
-        perror("send");
-        return false;
+    ssize_t totalSent = 0;
+    ssize_t messageLength = formattedMessage.length();
+
+    while (totalSent < messageLength) {
+        ssize_t sent = send(clientSocket, formattedMessage.c_str() + totalSent, messageLength - totalSent, 0);
+        if (sent == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue; // Try again
+            } else {
+                perror("send");
+                return false;
+            }
+        }
+        totalSent += sent;
     }
 
     std::cout << "Message sent to client: " << message << std::endl;
@@ -111,6 +141,7 @@ void Server::run() {
                     std::string message;
                     if (!receiveMessage(_clients[i].fd, message)) {
                         close(_clients[i].fd);
+                        _recvBuffers.erase(_clients[i].fd);
                         _clients.erase(_clients.begin() + i);
                         _users.erase(_users.begin() + i - 1); // Adjust for _listener
                         --i;
