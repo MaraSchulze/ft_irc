@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/17 19:22:36 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/18 19:00:32 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "helperFunctions.hpp"
 #include <iostream>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 IrcApplicationLayer::IrcApplicationLayer(std::string password) : _password(password), _serverName(SERVERNAME) {
 	_serverCreationTime = getTime();
@@ -54,8 +55,8 @@ void	IrcApplicationLayer::disconnect(int id) {
 		return;
 
 	// disconnects on socket layer
-	// TODO
-	std::cout << "[debug] disconnect socket " << id << std::endl;
+	close(id);
+	std::cout << "[debug] disconnected socket " << id << std::endl;
 
 	// remove user from _users map
 	deleteUser(id);
@@ -70,9 +71,9 @@ void	IrcApplicationLayer::receive(int id, std::string line) {
 
 	user = getUser(id);
 	if (user != NULL) {
-		// check for correct line terminator
-		if (line.size() < 2 || line[line.size() - 2] != '\r' || line[line.size() - 1] != '\n')
-			sendError(*user, "421", user->getNick() + " :Unknown command");
+		// // check for correct line terminator
+		// if (line.size() < 2 || line[line.size() - 2] != '\r' || line[line.size() - 1] != '\n')
+		// 	sendError(*user, "421", user->getNick() + " :Unknown command");
 
 		// split into commands
 		commandLines = splitString(line, "\r\n");

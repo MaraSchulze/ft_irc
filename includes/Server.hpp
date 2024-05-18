@@ -23,8 +23,8 @@ public:
     bool startListening();
     void run();
     bool acceptClient();
-    bool receiveMessage(int clientSocket, std::string& receivedMessage);
-    bool sendMessage(int clientSocket, const std::string& message);
+    bool receiveMessage(int clientSocket);
+    bool sendMessage(int clientSocket);
     void disconnect();
 
 private:
@@ -32,7 +32,8 @@ private:
     int _listener;
     std::vector<pollfd> _clients;
     std::map<int, std::string> _recvBuffers; // Buffers for accumulating received data per client
-    IrcApplicationLayer& _ircApp;
+    std::map<int, std::string> _sendBuffers;
+	IrcApplicationLayer& _ircApp;
 	SendQueue& _sendQueue;
 };
 
