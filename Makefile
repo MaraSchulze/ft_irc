@@ -6,7 +6,7 @@
 #    By: marschul <marschul@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/04/17 16:12:42 by marschul          #+#    #+#              #
-#    Updated: 2024/05/09 18:38:45 by marschul         ###   ########.fr        #
+#    Updated: 2024/05/17 18:37:58 by marschul         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,7 @@ OBJDIR		:= objs
 
 SRCS 	:= main.cpp IrcApplicationLayerPublic.cpp IrcApplicationLayerCommands.cpp \
 			IrcApplicationLayerSendFunctions.cpp IrcApplicationLayerHelperFunctions.cpp\
-			User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp socket.cpp
+			User.cpp Channel.cpp helperFunctions.cpp Mode.cpp SendQueue.cpp Server.cpp
 
 SRCS_WITH_DIRPREFIX	:= $(addprefix $(SRCDIR)/, $(SRCS))
 

@@ -6,15 +6,13 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:09:12 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 17:23:03 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/17 18:52:08 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "IrcApplicationLayer.hpp"
+#include "Server.hpp"
 #include <iostream>
-
-// debug
-#include "testApplicationLayer.hpp"
 
 int main(int argc, char **argv) {
 	if (argc != 3) {
@@ -24,4 +22,6 @@ int main(int argc, char **argv) {
 
 	IrcApplicationLayer ircApp = IrcApplicationLayer(argv[2]);
 
+	Server server(6667, ircApp);
+	server.run();
 }

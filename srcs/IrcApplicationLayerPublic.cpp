@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/09 19:35:28 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/17 19:22:36 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,10 @@ void	IrcApplicationLayer::receive(int id, std::string line) {
 
 	user = getUser(id);
 	if (user != NULL) {
+		// check for correct line terminator
+		if (line.size() < 2 || line[line.size() - 2] != '\r' || line[line.size() - 1] != '\n')
+			sendError(*user, "421", user->getNick() + " :Unknown command");
+
 		// split into commands
 		commandLines = splitString(line, "\r\n");
 
