@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 15:05:13 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 21:41:14 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 21:57:11 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,11 +58,23 @@ void	Mode::execute() {
 	// send server messages
 	flagStr = "";
 	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
-		if ((*it)[0] != '*')
+		std::string mode = (*it);
+		if (mode[0] != '*' && (mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
 			flagStr += *it;
 	}
+	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
+		std::string mode = (*it);
+		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
+			flagStr += *it;
+	}
+	for (size_t i = 0; i < _modes.size(); i++) {
+		std::string mode = _modes[i];
+		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
+			flagStr += " " + _parameters[i];
+	}
 	members = _channel.getMembers();
-	_ircApp.sendPrefixMessageToMany(_user, members, "MODE", _channel.getName() + " " + flagStr);
+	if (flagStr != "")
+		_ircApp.sendPrefixMessageToMany(_user, members, "MODE", _channel.getName() + " " + flagStr);
 }
 
 bool	Mode::parse() {
@@ -127,7 +139,7 @@ bool	Mode::limit(char sign, std::string parameter) {
 	limit = converseIntoInt(parameter);
 
 	// check if limit is a positive integer
-	if (limit == -1) {
+	if (sign == '+' && limit == -1) {
 		_ircApp.sendError(_user, "461", "MODE :Not enough parameters");
 		return false;
 	}
@@ -146,9 +158,15 @@ bool	Mode::op(char sign, std::string parameter) {
 
 	userId = _ircApp.getUserIdByName(parameter);
 
+	// check if target user exists
+	if (userId == -1) {
+		_ircApp.sendError(_user, "401", parameter + " :No such nick/channel");
+		return false;
+	}
+
 	// check if target user is in channel
 	if (_channel.isMember(userId) == false) {
-		_ircApp.sendError(_user, "441", _user.getNick() + " " + _channel.getName() + " :They aren't on that channel");
+		_ircApp.sendError(_user, "441", parameter + " " + _channel.getName() + " :They aren't on that channel");
 		return false;
 	}
 

@@ -71,3 +71,39 @@ INVITE
 INVITE nick channel, if user is on channel
 INVITE nick channel, if user is not on channel
 INVITE nick channel, if +i is set and user is not operator
+
+
+
+MODES
+=====
+
+- LIMIT 
+
+valid limit command as operator
+valid limit command as not operator
+invalid limit 
+set limit and try to join after limit is full 
+remove limit and try to join 
+
+- KEY 
+
+- OPERATOR 
+
+set operator who is on channel 
+do sth privileged
+reset operator and try to do sth as not any more operator 
+set operator who is not on channel 
+
+- TOPIC
+
+set topic and someone else changes topic 
+change topic as operator
+reset topic and change topic 
+
+- INVITE
+
+invite someone as operator and invitee joins
+not invitee tries to join
+formerly invites tries to join after leaving
+set back invite mode 
+someone tries to join 

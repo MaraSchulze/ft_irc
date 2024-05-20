@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 18:29:02 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/20 17:41:26 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 22:15:28 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -260,6 +260,7 @@ void	IrcApplicationLayer::handleJoin(User& user, std::string line) {
 
 		// add user to channel and add channel to user's channel list
 		channel->addMember(user.getId());
+		channel->removeFromInviteList(user.getId());
 		user.addChannel(channel->getName());
 
 		// send join message to all member of the channel
@@ -556,6 +557,7 @@ void	IrcApplicationLayer::handleInvite(User& user, std::string line) {
 	}
 
 	// send sender and invitee a server response
+	channel->addToInviteList(invitee);
 	sendServerMessage(user, "341", words[1] + " " + channel->getName());
 	sendPrefixMessage(user, *_users[invitee], "INVITE", words[1] + " " + channel->getName());
 }
@@ -643,7 +645,7 @@ void	IrcApplicationLayer::handleMode(User& user, std::string line) {
 
 	// check if channel exists
 	if (channel == NULL) {
-		sendError(user, "403", channel->getName() + " :No such channel");
+		sendError(user, "403", words[1] + " :No such channel");
 		return;
 	}
 
