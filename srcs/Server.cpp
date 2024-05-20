@@ -103,6 +103,10 @@ bool Server::sendMessage(int clientSocket) {
 		ssize_t nbytes = send(clientSocket, _sendBuffers[clientSocket].c_str(), _sendBuffers[clientSocket].size(), 0);
 		if (nbytes > 0) {
 			_sendBuffers[clientSocket].erase(0, nbytes);
+			for (size_t i = 0; i < _clients.size(); ++i) {
+				if (!_sendBuffers[_clients[i].fd].empty())
+					_clients[i].events &= ~POLLOUT;
+			}
 			return true;
 		} else if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 			return true;
@@ -165,14 +169,19 @@ void Server::run() {
 					--i;		
 				}
 			}
+		}
+		
+		while (! _sendQueue.empty()) {
+			clientSocket = _sendQueue.getNextSender();
+			message = _sendQueue.getNextMessage();
+			_sendQueue.pop();
+			_sendBuffers[clientSocket] += message;
+		}
 
-			while (! _sendQueue.empty()) {
-				clientSocket = _sendQueue.getNextSender();
-				message = _sendQueue.getNextMessage();
-				_sendQueue.pop();
-				_sendBuffers[clientSocket] += message;
-			}
-        }
+        for (size_t i = 0; i < _clients.size(); ++i) {
+			if (!_sendBuffers[_clients[i].fd].empty())
+				_clients[i].events |= POLLOUT;
+		}
     }
 
 	disconnect();
