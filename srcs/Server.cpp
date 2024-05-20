@@ -15,8 +15,8 @@ bool Server::startListening() {
         return false;
     }
 
-    int flags = fcntl(_listener, F_GETFL, 0);
-    fcntl(_listener, F_SETFL, flags | O_NONBLOCK);
+    // int flags = fcntl(_listener, F_GETFL, 0);
+    fcntl(_listener, F_SETFL, O_NONBLOCK);
 
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
@@ -52,8 +52,8 @@ bool Server::acceptClient() {
         return false;
     }
 
-    int flags = fcntl(clientSocket, F_GETFL, 0);
-    fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK);
+    // int flags = fcntl(clientSocket, F_GETFL, 0);
+    fcntl(clientSocket, F_SETFL, O_NONBLOCK);
 
     struct pollfd pfd;
     pfd.fd = clientSocket;

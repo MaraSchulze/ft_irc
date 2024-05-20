@@ -31,6 +31,6 @@ how is it with commands when not registered?	check
 
 ----------------
 
-We need some mechanism to set back a client connection initiated from the ircApplicationLayer. The management of the data structures in Server.cpp is otherwise not right. There is an empty entry after a QUIT.
-
 Line terminators!
+
+Only special fcntl
