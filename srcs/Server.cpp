@@ -1,7 +1,7 @@
 #include "Server.hpp"
 
 Server::Server(int port, IrcApplicationLayer& ircApp) : _port(port), _listener(0), _ircApp(ircApp), _sendQueue(_ircApp.getSendQueue()) {
-
+	_ircApp.registerServer(this);
 }
 
 Server::~Server() {
@@ -126,6 +126,22 @@ void Server::disconnect() {
     std::cout << "[socket layer] Server disconnected" << std::endl;
 }
 
+/*
+This function is being called from the ircApplicationLayer object after a QUIT.
+We clean up our data structures and mark the file descriptor as -1, so that
+we can delete it from _client later.
+*/
+void Server::disconnectClient(int clientFd) {
+    close(clientFd);
+    _recvBuffers.erase(clientFd);
+	_sendBuffers.erase(clientFd);
+    for (size_t i = 0; i < _clients.size(); ++i) {
+    	if (_clients[i].fd == clientFd) {
+			_clients[i].fd = -1;
+		}
+	}
+}
+
 void Server::run() {
 	int	clientSocket;
     std::string message;
@@ -158,7 +174,7 @@ void Server::run() {
                 }
             }
 
-			if ((_clients[i].revents & POLLOUT) && _clients[i].fd != _listener) {
+			if (_clients[i].fd != -1 && (_clients[i].revents & POLLOUT) && _clients[i].fd != _listener) {
 				clientFd = _clients[i].fd;
 				if (!sendMessage(clientFd)) {
 					_ircApp.disconnect(clientFd);
@@ -179,6 +195,10 @@ void Server::run() {
 		}
 
         for (size_t i = 0; i < _clients.size(); ++i) {
+			if (_clients[i].fd == -1) {
+				_clients.erase(_clients.begin() + i);
+				--i;
+			}
 			if (!_sendBuffers[_clients[i].fd].empty())
 				_clients[i].events |= POLLOUT;
 		}

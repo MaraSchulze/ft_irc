@@ -15,6 +15,8 @@
 #include "User.hpp"
 #include "IrcApplicationLayer.hpp"
 
+class IrcApplicationLayer;
+
 class Server {
 public:
     Server(int port, IrcApplicationLayer& ircApp);
@@ -26,6 +28,7 @@ public:
     bool receiveMessage(int clientSocket);
     bool sendMessage(int clientSocket);
     void disconnect();
+	void disconnectClient(int id);
 
 private:
     int _port;

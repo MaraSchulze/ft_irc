@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:39:00 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/20 15:40:02 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 18:49:05 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,15 @@
 # include "User.hpp"
 # include "Channel.hpp"
 # include "SendQueue.hpp"
+# include "Server.hpp"
 # include <map>
 # include <string>
 # include <netinet/in.h>
 # include <vector>
 
 # define SERVERNAME "irc.rockingpiggies.com"
+
+class Server;
 
 class  IrcApplicationLayer {
 	private:
@@ -31,6 +34,7 @@ class  IrcApplicationLayer {
 		std::string						_serverName;
 		SendQueue						_sendQueue;
 		std::string						_serverCreationTime;
+		Server							*_server;
 
 		void	dispatchCommand(User& user, std::string line);
 		void	handlePass(User& user, std::string line);
@@ -67,6 +71,7 @@ class  IrcApplicationLayer {
 		int			getUserIdByName(std::string name);
 		void		sendError(User& user, std::string errorcode, std::string errorMessage);
 		void		sendPrefixMessageToMany(User& user, std::vector<int> ids, std::string command, std::string text);
+		void		registerServer(Server *server);
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 17:04:57 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/18 19:00:32 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 18:49:41 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 
 IrcApplicationLayer::IrcApplicationLayer(std::string password) : _password(password), _serverName(SERVERNAME) {
 	_serverCreationTime = getTime();
+	_server = NULL;
 }
 
 IrcApplicationLayer::~IrcApplicationLayer() {
@@ -55,7 +56,8 @@ void	IrcApplicationLayer::disconnect(int id) {
 		return;
 
 	// disconnects on socket layer
-	close(id);
+	if (_server != NULL)
+		_server->disconnectClient(id);
 	std::cout << "[debug] disconnected socket " << id << std::endl;
 
 	// remove user from _users map
@@ -100,4 +102,8 @@ int		IrcApplicationLayer::getUserIdByName(std::string name) {
 			return current->getId();
 	}
 	return -1;
+}
+
+void	IrcApplicationLayer::registerServer(Server *server) {
+	_server = server;
 }
