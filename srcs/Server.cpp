@@ -57,7 +57,7 @@ bool Server::acceptClient() {
 
     struct pollfd pfd;
     pfd.fd = clientSocket;
-    pfd.events = POLLIN | POLLOUT;
+    pfd.events = POLLIN;
     _clients.push_back(pfd);
 
 	_ircApp.connect(clientSocket, clientAddr);
