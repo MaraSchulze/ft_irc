@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 18:29:02 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/09 21:55:16 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 16:37:14 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,11 +19,11 @@
 
 void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 	std::string	command;
-	std::string commands[13] = {"PASS", "NICK", "USER", "JOIN", "PART", "PRIVMSG", "KICK", "INVITE", "TOPIC", "MODE", "QUIT", "CAP", "PING"};
+	std::string commands[14] = {"PASS", "NICK", "USER", "JOIN", "PART", "PRIVMSG", "KICK", "INVITE", "TOPIC", "MODE", "QUIT", "CAP", "PING", "NOTICE"};
 	int	index;
 
 	command = firstWord(line);
-	for (index = 0; index < 13; index++) {
+	for (index = 0; index < 14; index++) {
 		if (compareStrings(command, commands[index]) == true)
 			break;
 	}
@@ -54,9 +54,9 @@ void	IrcApplicationLayer::dispatchCommand(User& user, std::string line) {
 					return;
 		case 12	:	handlePing(user, line);
 					return;
-		default :	if (command == "NOTICE")
-						return;
-					sendError(user, "421", command + " :Unknown command");
+		case 13	:	handleNotice(user, line);
+					return;		
+		default :	sendError(user, "421", command + " :Unknown command");
 	}
 }
 
@@ -735,5 +735,63 @@ void	IrcApplicationLayer::handlePing(User& user, std::string line) {
 
 	words = splitString(line, " ");
 
-	send(user.getId(), std::string("PONG") + words[1]);
+	send(user.getId(), std::string("PONG ") + words[1]);
+}
+
+void	IrcApplicationLayer::handleNotice(User& user, std::string line) {
+	std::vector<std::string>	words;
+	std::string					message;
+	int							recipientId;
+	Channel 					*channel;
+	std::vector<int>			members;
+	std::vector<int>::iterator	it;
+	
+	words = splitString(line, " ");
+
+	// check if user is registered, but don't send back error message
+	if (user.checkAuthStatus() == false) {
+		return;
+	}
+
+	// check for recipient, but don't send back error message
+	if (words.size() < 2) {
+		return;
+	}
+
+	// check for message, but don't send back error message
+	if (words.size() < 3) {
+		return;
+	}
+	
+	// assemble message
+	message = getSeveralWords(words, 2);
+
+	// is it a private message?
+	recipientId = getUserIdByName(words[1]);
+	if (words[1][0] != '#') {
+		if (recipientId == -1) {
+			return;
+		} else {
+			sendPrefixMessage(user, *_users[recipientId], "NOTICE", words[1] + " " + message);
+			return;
+		}
+	}
+
+	channel = getChannel(words[1]);
+
+	// check if channel exists, but don't send back error message
+	if (channel == NULL) {
+		return;
+	}
+
+	// check if member is on channel, but don't send back error message
+	if (channel->isMember(user.getId()) == false) {
+		return;
+	}
+
+	// send to every member in channel except to user
+	members = channel->getMembers();
+	it = std::find(members.begin(), members.end(), user.getId());
+	members.erase(it);
+	sendPrefixMessageToMany(user, members, "NOTICE", channel->getName() + " :" + message);
 }

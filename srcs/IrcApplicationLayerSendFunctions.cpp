@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 18:31:15 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/09 19:45:44 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/20 16:49:39 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,5 +51,5 @@ void	IrcApplicationLayer::sendWelcome(User& user) {
 }
 
 void	IrcApplicationLayer::send(int id, std::string message) {
-	_sendQueue.push(id, message + '\n');
+	_sendQueue.push(id, message + "\r\n");
 }

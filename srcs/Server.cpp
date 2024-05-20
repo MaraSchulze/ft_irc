@@ -39,7 +39,7 @@ bool Server::startListening() {
     pfd.events = POLLIN;
     _clients.push_back(pfd);
 
-    std::cout << "Server listening on port " << _port << std::endl;
+    std::cout << "[socket layer] Server listening on port " << _port << std::endl;
     return true;
 }
 
@@ -65,7 +65,7 @@ bool Server::acceptClient() {
     _recvBuffers[clientSocket] = "";
     _sendBuffers[clientSocket] = "";
 
-    std::cout << "Client connected" << std::endl;
+    std::cout << "[socket layer] Client connected" << std::endl;
     return true;
 }
 
@@ -75,7 +75,7 @@ bool Server::receiveMessage(int clientSocket) {
 	ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 	if (bytesRead <= 0) {
 		if (bytesRead == 0) {
-			std::cout << "Client disconnected" << std::endl;
+			std::cout << "[socket layer] Client disconnected" << std::endl;
 			return false;
 		} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 			return true; // No more data to read
@@ -89,11 +89,11 @@ bool Server::receiveMessage(int clientSocket) {
 	_recvBuffers[clientSocket] += buffer;
 
 	size_t pos;
-	if ((pos = _recvBuffers[clientSocket].find("\r\n")) != std::string::npos) {
+	while ((pos = _recvBuffers[clientSocket].find("\r\n")) != std::string::npos) {
 		std::string message = _recvBuffers[clientSocket].substr(0, pos);
 		_recvBuffers[clientSocket].erase(0, pos + 2);
+		std::cout << "[socket layer] Received complete message from client: " << message << std::endl;
 		_ircApp.receive(clientSocket, message);
-		std::cout << "Received complete message from client: " << message << std::endl;
 	}
     return true;
 }
@@ -119,7 +119,7 @@ void Server::disconnect() {
         close(_clients[i].fd);
     }
     _clients.clear();
-    std::cout << "Server disconnected" << std::endl;
+    std::cout << "[socket layer] Server disconnected" << std::endl;
 }
 
 void Server::run() {
