@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/18 16:38:05 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/09 19:53:31 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/21 17:33:33 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,7 @@
 // debug
 #include <iostream>
 
-User::User(int id) : _id(id), _authStatusPass(0), _authStatusNick(0), _authStatusUser(0) {
-	std::cout << "[debug] User " << id << " connected" << std::endl;
-}
+User::User(int id) : _id(id), _authStatusPass(0), _authStatusNick(0), _authStatusUser(0) {}
 
 User::~User() {}
 
