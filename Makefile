@@ -6,7 +6,7 @@
 #    By: marschul <marschul@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/04/17 16:12:42 by marschul          #+#    #+#              #
-#    Updated: 2024/05/21 11:34:54 by marschul         ###   ########.fr        #
+#    Updated: 2024/05/21 17:56:49 by marschul         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,10 +31,10 @@ OBJS	:= $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(SRCS_WITH_DIRPREFIX))
 all: $(NAME)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CC) $(DFLAGS) $(HEADERS) -c $< -o $@
+	$(CC) $(CFLAGS) $(HEADERS) -c $< -o $@
 
 $(NAME): $(OBJS)
-	$(CC) $(DFLAGS) $(HEADERS) $(OBJS) -o $(NAME)
+	$(CC) $(CFLAGS) $(HEADERS) $(OBJS) -o $(NAME)
 
 clean:
 	rm -f $(OBJS)

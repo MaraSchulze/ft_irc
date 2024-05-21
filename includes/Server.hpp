@@ -10,6 +10,8 @@
 #include <iostream>
 #include <poll.h>
 #include <fcntl.h>
+#include <cstdio>
+#include <cerrno>
 #include <map>
 #include "SendQueue.hpp"
 #include "User.hpp"
