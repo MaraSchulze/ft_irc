@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 14:57:30 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/01 21:41:58 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/21 15:07:19 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,12 +28,13 @@ class  Mode {
 		std::vector<std::string>	_modes;
 		std::vector<std::string>	_parameters;
 
-		bool	parse();
-		void	invite(char sign, std::string parameter);
-		void	key(char sign, std::string parameter);
-		bool	limit(char sign, std::string parameter);
-		bool	op(char sign, std::string parameter);
-		void	topic(char sign, std::string parameter);
+		bool		parse();
+		void		invite(char sign, std::string parameter);
+		void		key(char sign, std::string parameter);
+		bool		limit(char sign, std::string parameter);
+		bool		op(char sign, std::string parameter);
+		void		topic(char sign, std::string parameter);
+		std::string	createFlagString();
 	public:
 		Mode(IrcApplicationLayer& ircApp, User& user, Channel& channel, const std::string line);
 		~Mode();

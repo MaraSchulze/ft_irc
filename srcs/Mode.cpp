@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 15:05:13 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/20 21:57:11 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/21 15:06:32 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,22 +56,7 @@ void	Mode::execute() {
 	}
 
 	// send server messages
-	flagStr = "";
-	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
-		std::string mode = (*it);
-		if (mode[0] != '*' && (mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
-			flagStr += *it;
-	}
-	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
-		std::string mode = (*it);
-		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
-			flagStr += *it;
-	}
-	for (size_t i = 0; i < _modes.size(); i++) {
-		std::string mode = _modes[i];
-		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
-			flagStr += " " + _parameters[i];
-	}
+	flagStr = createFlagString();
 	members = _channel.getMembers();
 	if (flagStr != "")
 		_ircApp.sendPrefixMessageToMany(_user, members, "MODE", _channel.getName() + " " + flagStr);
@@ -112,6 +97,26 @@ bool	Mode::parse() {
 		flagWordIndex = parameterWordIndex;
 	}
 	return true;
+}
+
+std::string	Mode::createFlagString() {
+	std::string	flagStr = "";
+	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
+		std::string mode = (*it);
+		if (mode[0] != '*' && (mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
+			flagStr += *it;
+	}
+	for (std::vector<std::string>::iterator it = _modes.begin(); it < _modes.end(); it++) {
+		std::string mode = (*it);
+		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
+			flagStr += *it;
+	}
+	for (size_t i = 0; i < _modes.size(); i++) {
+		std::string mode = _modes[i];
+		if (mode[0] != '*' && !(mode == "+i" || mode == "-i" || mode == "-k" || mode == "-l" || mode == "-t" || mode == "+t"))
+			flagStr += " " + _parameters[i];
+	}
+	return flagStr;
 }
 
 void	Mode::invite(char sign, std::string parameter) {
