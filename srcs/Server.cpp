@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ygolshan <ygolshan@student.42.fr>          +#+  +:+       +#+        */
+/*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/21 17:44:10 by ygolshan          #+#    #+#             */
-/*   Updated: 2024/05/21 17:44:11 by ygolshan         ###   ########.fr       */
+/*   Updated: 2024/05/21 18:42:13 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,7 +96,11 @@ bool Server::receiveMessage(int clientSocket) {
 	}
 
 	buffer[bytesRead] = '\0';
-	_recvBuffers[clientSocket] += buffer;
+	try {
+		_recvBuffers[clientSocket] += buffer;
+	} catch (const std::bad_alloc& e) {
+		return false;
+	}
 
 	size_t pos;
 	while ((pos = _recvBuffers[clientSocket].find("\r\n")) != std::string::npos) {

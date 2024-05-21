@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cerrno>
 #include <map>
+#include <new>
 #include "SendQueue.hpp"
 #include "User.hpp"
 #include "IrcApplicationLayer.hpp"
