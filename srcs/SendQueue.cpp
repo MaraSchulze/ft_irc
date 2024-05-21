@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/22 16:42:22 by marschul          #+#    #+#             */
-/*   Updated: 2024/04/22 16:59:10 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/21 11:37:30 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ SendQueue::~SendQueue() {}
 void	SendQueue::push(int id, std::string message) {
 	_id.push(id);
 	_message.push(message);
-	std::cout << "[sendqueue] " << "(id " << id << ", message " << message << ")" << std::endl;
+	//std::cout << "[sendqueue] " << "(id " << id << ", message " << message << ")" << std::endl;
 }
 
 void	SendQueue::pop() {
