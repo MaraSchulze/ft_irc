@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/09 18:29:02 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/20 22:15:28 by marschul         ###   ########.fr       */
+/*   Updated: 2024/05/21 10:28:29 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -381,7 +381,7 @@ void	IrcApplicationLayer::handlePrivmsg(User& user, std::string line) {
 			sendError(user, "401", words[1] + " :No such nick/channel");
 			return;
 		} else {
-			sendPrefixMessage(user, *_users[recipientId], "PRIVMSG", words[1] + " " + message);
+			sendPrefixMessage(user, *_users[recipientId], "PRIVMSG", words[1] + " :" + message);
 			return;
 		}
 	}

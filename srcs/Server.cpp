@@ -39,7 +39,7 @@ bool Server::startListening() {
     pfd.events = POLLIN;
     _clients.push_back(pfd);
 
-    std::cout << "[socket layer] Server listening on port " << _port << std::endl;
+    std::cout << "Server listening on port " << _port << std::endl;
     return true;
 }
 
@@ -65,7 +65,6 @@ bool Server::acceptClient() {
     _recvBuffers[clientSocket] = "";
     _sendBuffers[clientSocket] = "";
 
-    std::cout << "[socket layer] Client connected" << std::endl;
     return true;
 }
 
@@ -75,7 +74,6 @@ bool Server::receiveMessage(int clientSocket) {
 	ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 	if (bytesRead <= 0) {
 		if (bytesRead == 0) {
-			std::cout << "[socket layer] Client disconnected" << std::endl;
 			return false;
 		} else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 			return true; // No more data to read
@@ -92,7 +90,6 @@ bool Server::receiveMessage(int clientSocket) {
 	while ((pos = _recvBuffers[clientSocket].find("\r\n")) != std::string::npos) {
 		std::string message = _recvBuffers[clientSocket].substr(0, pos);
 		_recvBuffers[clientSocket].erase(0, pos + 2);
-		std::cout << "[socket layer] Received complete message from client: " << message << std::endl;
 		_ircApp.receive(clientSocket, message);
 	}
     return true;
@@ -123,7 +120,7 @@ void Server::disconnect() {
         close(_clients[i].fd);
     }
     _clients.clear();
-    std::cout << "[socket layer] Server disconnected" << std::endl;
+    std::cout << "Server disconnected" << std::endl;
 }
 
 /*
@@ -147,7 +144,8 @@ void Server::run() {
     std::string message;
 	int clientFd;
 
-	startListening();
+	if (!startListening())
+		return;
 
     while (true) {
         int pollCount = poll(&_clients[0], _clients.size(), -1);
@@ -161,7 +159,8 @@ void Server::run() {
 
             if (_clients[i].revents & POLLIN) {
                 if (clientFd == _listener) {
-                    acceptClient();
+                    if (!acceptClient())
+						return;
                 } else {
                     if (!receiveMessage(clientFd)) {
 						_ircApp.disconnect(clientFd);
@@ -203,6 +202,4 @@ void Server::run() {
 				_clients[i].events |= POLLOUT;
 		}
     }
-
-	disconnect();
 }
