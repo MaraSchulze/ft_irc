@@ -1,0 +1,5 @@
+This is a team project (with the lovely Yalda Golshani - shoutout) for the 42Heilbronn coding school. The subject is the pdf in the repo.
+
+We programmed a simple (16 commands) IRC server that can nevertheless be connected to KVIrc client.
+
+I programmed the application layer and Yalda programmed the socket layer.
