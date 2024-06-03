@@ -6,7 +6,7 @@
 /*   By: marschul <marschul@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/04/17 16:09:12 by marschul          #+#    #+#             */
-/*   Updated: 2024/05/21 11:39:16 by marschul         ###   ########.fr       */
+/*   Updated: 2024/06/03 12:50:27 by marschul         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,13 @@ int main(int argc, char **argv) {
 	// Create ircApplicationLayer
 	IrcApplicationLayer ircApp = IrcApplicationLayer(argv[2]);
 
+	// converse port from string to int
+	port = converseIntoInt(port);
+	if (port == -1)
+		return 1;
+
 	// Create server
-	Server server(6667, ircApp);
+	Server server(port, ircApp);
 
 	// run server
 	server.run();
