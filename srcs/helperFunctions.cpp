@@ -84,6 +84,24 @@ std::string	getTime() {
 	return result;
 }
 
+int	conversePortIntoInt(char *input) {
+	unsigned long int	limit;
+    std::string         str;
+	
+    str = std::string(input);
+	for (size_t i = 0; i < str.size(); i++) {
+		if (isdigit(str[i]) == false)
+			return -1;
+	}
+	limit = 0;
+	for (int i = 0; i < std::min((int) (str.size()), 10); i++) {
+		limit = 10 * limit + (str[i] - '0');
+	}
+	if (limit < 1 || limit > 2147483647)
+		return -1;
+	return limit;
+}
+
 int	converseIntoInt(std::string str) {
 	unsigned long int	limit;
 	

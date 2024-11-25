@@ -12,9 +12,12 @@
 
 #include "IrcApplicationLayer.hpp"
 #include "Server.hpp"
+#include "helperFunctions.hpp"
 #include <iostream>
 
 int main(int argc, char **argv) {
+    int port;
+
 	if (argc != 3) {
 		std::cout << "usage: ./ircserv <port> <password>" << std::endl;
 		return 1;
@@ -24,7 +27,7 @@ int main(int argc, char **argv) {
 	IrcApplicationLayer ircApp = IrcApplicationLayer(argv[2]);
 
 	// converse port from string to int
-	port = converseIntoInt(port);
+	port = conversePortIntoInt(argv[1]);
 	if (port == -1)
 		return 1;
 

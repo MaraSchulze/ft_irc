@@ -21,6 +21,7 @@ std::vector<std::string> splitString(const std::string &str, const std::string& 
 std::string	getSeveralWords(std::vector<std::string> words, int begin);
 bool	isCorrectNick(std::string nick);
 std::string	getTime();
+int	conversePortIntoInt(char *input);
 int	converseIntoInt(std::string str);
 bool	compareStrings(std::string a, std::string b);
 std::string	setToLower(std::string str);
